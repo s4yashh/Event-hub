@@ -88,3 +88,92 @@
     {
       "Sid": "PassProjectRolesToServicesOnly",
       "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::<ACCOUNT_ID>:role/CloudProject-*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": [
+            "ec2.amazonaws.com",
+            "states.amazonaws.com"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "SelfServiceCredentialsAndMFA",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetUser",
+        "iam:GetLoginProfile",
+        "iam:ChangePassword",
+        "iam:CreateAccessKey",
+        "iam:DeleteAccessKey",
+        "iam:ListAccessKeys",
+        "iam:UpdateAccessKey",
+        "iam:ListMFADevices",
+        "iam:EnableMFADevice",
+        "iam:ResyncMFADevice",
+        "iam:DeactivateMFADevice",
+        "iam:DeleteVirtualMFADevice"
+      ],
+      "Resource": [
+        "arn:aws:iam::<ACCOUNT_ID>:user/${aws:username}",
+        "arn:aws:iam::<ACCOUNT_ID>:mfa/${aws:username}"
+      ]
+    },
+    {
+      "Sid": "IdentitiesAreRootManaged",
+      "Effect": "Deny",
+      "Action": [
+        "iam:CreateUser",
+        "iam:DeleteUser",
+        "iam:CreateLoginProfile",
+        "iam:UpdateLoginProfile",
+        "iam:DeleteLoginProfile",
+        "iam:CreateGroup",
+        "iam:DeleteGroup",
+        "iam:AddUserToGroup",
+        "iam:RemoveUserFromGroup",
+        "iam:AttachGroupPolicy",
+        "iam:DetachGroupPolicy",
+        "iam:PutGroupPolicy",
+        "iam:DeleteGroupPolicy"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "NoOutOfSyllabusOrBillingServices",
+      "Effect": "Deny",
+      "Action": [
+        "lambda:*",
+        "ses:*",
+        "ecs:*",
+        "eks:*",
+        "apigateway:*",
+        "cognito-idp:*",
+        "cognito-identity:*",
+        "amplify:*",
+        "account:*",
+        "organizations:*",
+        "support:*",
+        "aws-marketplace:*",
+        "route53domains:*",
+        "savingsplans:*",
+        "kms:CreateKey",
+        "kms:CreateAlias"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowRdsServiceLinkedRoleOnly",
+      "Effect": "Allow",
+      "Action": "iam:CreateServiceLinkedRole",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "iam:AWSServiceName": "rds.amazonaws.com"
+        }
+      }
+    }
+  ]
+}
