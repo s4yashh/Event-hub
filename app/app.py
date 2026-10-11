@@ -176,3 +176,34 @@ def register(event_id):
     return redirect(url_for("events"))
 
 
+@app.route("/my")
+@login_required
+def my_registrations():
+    """Read this user's registrations from DynamoDB and resolve event titles."""
+    items = ddb.Table(REGISTRATIONS_TABLE).scan(
+        FilterExpression="userId = :u",
+        ExpressionAttributeValues={":u": str(session["user_id"])},
+    )["Items"]
+    items.sort(key=lambda item: item.get("timestamp", ""), reverse=True)
+    titles = {}
+    event_ids = [int(item["eventId"]) for item in items]
+    if event_ids:
+        placeholders = ",".join(["%s"] * len(event_ids))
+        with db() as conn, conn.cursor() as cur:
+            cur.execute(
+                f"SELECT id, title FROM events WHERE id IN ({placeholders})", event_ids
+            )
+            titles = {str(row["id"]): row["title"] for row in cur.fetchall()}
+    for item in items:
+        item["title"] = titles.get(item["eventId"], f"Event {item['eventId']}")
+    return render_template(
+        "registrations.html",
+        page_title="Your tickets",
+        registrations=items,
+        confirmed_count=sum(item.get("status") == "CONFIRMED" for item in items),
+        waitlisted_count=sum(item.get("status") == "WAITLISTED" for item in items),
+    )
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=80)
