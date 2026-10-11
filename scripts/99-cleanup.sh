@@ -76,3 +76,37 @@ echo "[10/12] security groups"
 [ -n "${DB_SG:-}" ]  && try aws ec2 delete-security-group --group-id "$DB_SG"
 [ -n "${WEB_SG:-}" ] && try aws ec2 delete-security-group --group-id "$WEB_SG"
 
+echo "[11/12] route tables, IGW, subnets, VPC"
+for RT in "${RT_PUB:-}" "${RT_PRIV:-}"; do
+  [ -z "$RT" ] && continue
+  for A in $(aws ec2 describe-route-tables --route-table-ids "$RT" \
+    --query 'RouteTables[0].Associations[?Main==`false`].RouteTableAssociationId' --output text 2>/dev/null); do
+    try aws ec2 disassociate-route-table --association-id "$A"
+  done
+  try aws ec2 delete-route-table --route-table-id "$RT"
+done
+if [ -n "${IGW_ID:-}" ]; then
+  try aws ec2 detach-internet-gateway --internet-gateway-id "$IGW_ID" --vpc-id "$VPC_ID"
+  try aws ec2 delete-internet-gateway --internet-gateway-id "$IGW_ID"
+fi
+for S in "${PUBLIC_SUBNET:-}" "${PRIV1:-}" "${PRIV2:-}"; do
+  [ -n "$S" ] && try aws ec2 delete-subnet --subnet-id "$S"
+done
+[ -n "${VPC_ID:-}" ] && try aws ec2 delete-vpc --vpc-id "$VPC_ID"
+
+echo "[12/12] done"
+cat <<'DONE'
+============================================================
+TEARDOWN COMPLETE (best effort)
+Kept on purpose (all $0): IAM users/group/roles, key pair,
+budgets. Key note: deleting RDS with no final snapshot and
+backups disabled leaves ZERO snapshot charges.
+
+VERIFY:
+  * Billing -> Bills / Cost Explorer: expect a few cents from
+    this month's run, no new charges after today.
+  * EC2 -> Volumes / Elastic IPs / Snapshots: nothing left.
+  * RDS -> Databases / Snapshots: nothing left.
+Rebuild anytime with scripts 01 -> 06 (~35 min).
+============================================================
+DONE
