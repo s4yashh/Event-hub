@@ -45,3 +45,50 @@
           "Next": "WriteWaitlisted",
           "ResultPath": "$.reserveError"
         },
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Comment": "Any other error -> visible as a failed execution in the Step Functions console.",
+          "Next": "RegistrationFailed"
+        }
+      ],
+      "Next": "WriteConfirmed",
+      "ResultPath": null
+    },
+    "WriteConfirmed": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:putItem",
+      "Parameters": {
+        "TableName": "Registrations",
+        "Item": {
+          "eventId": {
+            "S.$": "$.eventId"
+          },
+          "userId": {
+            "S.$": "$.userId"
+          },
+          "email": {
+            "S.$": "$.email"
+          },
+          "status": {
+            "S": "CONFIRMED"
+          },
+          "timestamp": {
+            "S.$": "$$.State.EnteredTime"
+          }
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "DynamoDB.ProvisionedThroughputExceededException",
+            "DynamoDB.RequestLimitExceeded",
+            "DynamoDB.ThrottlingException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 4,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Next": "NotifyConfirmed",
