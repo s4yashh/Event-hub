@@ -132,3 +132,44 @@ aws ec2 authorize-security-group-ingress --group-id "$DB_SG" \
   --protocol tcp --port 3306 --source-group "$WEB_SG" 2>/dev/null || true
 echo "[5/7] security groups ready (SSH allowed from $MY_IP/32 only)"
 
+# ---- 6. RDS DB subnet group --------------------------------------------------
+if aws rds describe-db-subnet-groups --db-subnet-group-name eventhub-db-subnet-group >/dev/null 2>&1; then
+  echo "[6/7] DB subnet group exists"
+else
+  aws rds create-db-subnet-group \
+    --db-subnet-group-name eventhub-db-subnet-group \
+    --db-subnet-group-description "EventHub private subnets (2 AZs, required by RDS)" \
+    --subnet-ids "$PRIV1" "$PRIV2" >/dev/null
+  echo "[6/7] DB subnet group created"
+fi
+
+# ---- 7. Save state ----------------------------------------------------------
+cat > "$STATE" <<EOF
+ACCOUNT_ID=$ACCOUNT_ID
+REGION=$REGION
+VPC_ID=$VPC_ID
+AZ1=$AZ1
+AZ2=$AZ2
+PUBLIC_SUBNET=$PUBLIC_SUBNET
+PRIV1=$PRIV1
+PRIV2=$PRIV2
+IGW_ID=$IGW_ID
+RT_PUB=$RT_PUB
+RT_PRIV=$RT_PRIV
+WEB_SG=$WEB_SG
+DB_SG=$DB_SG
+EOF
+echo "[7/7] state saved to scripts/state.env"
+
+cat <<DONE
+
+============================================================
+NETWORK BUILD COMPLETE — copy this block back to your mentor:
+
+VPC_ID=$VPC_ID
+PUBLIC_SUBNET=$PUBLIC_SUBNET
+PRIV1=$PRIV1   PRIV2=$PRIV2   (AZs: $AZ1, $AZ2)
+WEB_SG=$WEB_SG
+DB_SG=$DB_SG
+============================================================
+DONE
