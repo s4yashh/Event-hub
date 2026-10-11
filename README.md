@@ -42,3 +42,25 @@ visibility via CloudWatch / CloudTrail / Budgets.
 | `aws/stepfunctions/` | State machine definition (Amazon States Language) |
 | `aws/sns/` | Example SNS subscription filter policy |
 
+## Rules we follow (from the project brief)
+
+1. Zero cost — free-tier eligible sizes only; every phase guide starts with a cost check.
+2. Syllabus services only — no Lambda/SES/ECS/EKS/API Gateway/Cognito/Amplify.
+3. No NAT Gateway, ALB, Multi-AZ RDS, Aurora, read replicas, CloudFront or WAF in the built version
+   (covered in the report's "Architecture at Scale" section only).
+4. No hardcoded AWS keys — the app uses the EC2 instance role; people use IAM users with
+   credentials in `~/.aws/credentials` (never in code, never in git).
+5. Root is used only for account setup; daily work uses IAM users with MFA.
+
+## Placeholders to replace while building
+
+| Placeholder | Meaning |
+|---|---|
+| `<ACCOUNT_ID>` | 12-digit AWS account ID (top-right of console) |
+| `<MY_IP>` | Your current IPv4 address (the console's "My IP" dropdown does this automatically) |
+| Team emails | A, B, C emails used for SNS + budget alerts |
+
+## Next step
+
+Answer the one open question (can B or C open a fresh AWS account?), then start
+`docs/build-guide.md` → **Phase 1**. We do one phase at a time and verify before moving on.
