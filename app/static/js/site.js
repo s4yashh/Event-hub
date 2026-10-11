@@ -63,3 +63,49 @@ document.addEventListener("DOMContentLoaded", () => {
     if (noEvents) noEvents.hidden = visible > 0;
   }
 
+  search?.addEventListener("input", filterEvents);
+  clubFilters.forEach((button) => {
+    button.addEventListener("click", () => {
+      selectedClub = button.dataset.clubFilter || "all";
+      clubFilters.forEach((chip) => {
+        const active = chip === button;
+        chip.classList.toggle("is-selected", active);
+        chip.setAttribute("aria-pressed", String(active));
+      });
+      filterEvents();
+    });
+  });
+
+  document.querySelector("#clear-filters")?.addEventListener("click", () => {
+    if (search) search.value = "";
+    selectedClub = "all";
+    clubFilters.forEach((chip) => {
+      const active = chip.dataset.clubFilter === "all";
+      chip.classList.toggle("is-selected", active);
+      chip.setAttribute("aria-pressed", String(active));
+    });
+    filterEvents();
+    search?.focus();
+  });
+
+  const ticketFilters = Array.from(document.querySelectorAll("[data-ticket-filter]"));
+  const ticketRows = Array.from(document.querySelectorAll("[data-ticket-row]"));
+  const noTickets = document.querySelector("#no-tickets");
+  ticketFilters.forEach((button) => {
+    button.addEventListener("click", () => {
+      const filter = button.dataset.ticketFilter || "all";
+      let visible = 0;
+      ticketFilters.forEach((chip) => {
+        const active = chip === button;
+        chip.classList.toggle("is-selected", active);
+        chip.setAttribute("aria-pressed", String(active));
+      });
+      ticketRows.forEach((row) => {
+        const show = filter === "all" || row.dataset.status === filter;
+        row.hidden = !show;
+        if (show) visible += 1;
+      });
+      if (noTickets) noTickets.hidden = visible > 0;
+    });
+  });
+
