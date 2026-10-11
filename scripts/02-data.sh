@@ -71,3 +71,36 @@ else
   echo "      EventSeats already has items (not reseeding)"
 fi
 
+# ---- 3. RDS MySQL -----------------------------------------------------------
+if aws rds describe-db-instances --db-instance-identifier eventhub-mysql >/dev/null 2>&1; then
+  echo "[3/4] RDS eventhub-mysql already exists"
+else
+  DB_PASS=$(aws ssm get-parameter --name /eventhub/db-password \
+    --with-decryption --query Parameter.Value --output text)
+  aws rds create-db-instance \
+    --db-instance-identifier eventhub-mysql \
+    --db-instance-class db.t3.micro \
+    --engine mysql \
+    --master-username eventhubadmin \
+    --master-user-password "$DB_PASS" \
+    --allocated-storage 20 \
+    --storage-type gp3 \
+    --storage-encrypted \
+    --db-subnet-group-name eventhub-db-subnet-group \
+    --vpc-security-group-ids "$DB_SG" \
+    --no-publicly-accessible \
+    --no-multi-az \
+    --backup-retention-period 0 \
+    --no-deletion-protection \
+    --db-name eventhub \
+    --tags Key=Name,Value=eventhub-mysql \
+    --query 'DBInstance.DBInstanceIdentifier' --output text >/dev/null
+  echo "[3/4] RDS eventhub-mysql requested (takes ~5-10 min; script 04 waits for it)"
+fi
+
+# ---- 4. Status --------------------------------------------------------------
+STATUS=$(aws rds describe-db-instances --db-instance-identifier eventhub-mysql \
+  --query 'DBInstances[0].[DBInstanceStatus,DBInstanceClass,AllocatedStorage]' --output text)
+echo "[4/4] RDS status: $STATUS"
+echo
+echo "DATA LAYER DONE (RDS still provisioning in the background)"
