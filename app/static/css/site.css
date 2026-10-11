@@ -1,0 +1,31 @@
+/* EventHub visual system — local assets, no framework or font CDN required. */
+:root {
+  color-scheme: light;
+  --paper: #f6f5f0;
+  --paper-deep: #ecebe4;
+  --surface: #fffefa;
+  --ink: #202530;
+  --ink-soft: #434958;
+  --muted: #747a83;
+  --line: #e5e3da;
+  --lime: #dafa68;
+  --lime-deep: #c8ed4c;
+  --violet: #7258dc;
+  --violet-soft: #eee9ff;
+  --coral: #ff8a70;
+  --teal: #7ed7c2;
+  --ok: #247453;
+  --ok-bg: #e6f3eb;
+  --wait: #956216;
+  --wait-bg: #fbf0d8;
+  --error: #9d3934;
+  --error-bg: #fff0ed;
+  --shadow-sm: 0 2px 8px rgba(32, 37, 48, .05);
+  --shadow-card: 0 16px 40px rgba(32, 37, 48, .08);
+  --shadow-pop: 0 22px 54px rgba(32, 37, 48, .18);
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 30px;
+  --max-width: 1160px;
+}
+
