@@ -138,3 +138,50 @@
           "timestamp": {
             "S.$": "$$.State.EnteredTime"
           }
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "DynamoDB.ProvisionedThroughputExceededException",
+            "DynamoDB.RequestLimitExceeded",
+            "DynamoDB.ThrottlingException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 4,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Next": "NotifyWaitlisted",
+      "ResultPath": null
+    },
+    "NotifyWaitlisted": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:ap-south-1:<ACCOUNT_ID>:eventhub-notifications",
+        "Message.$": "States.Format('WAITLISTED: event {} is full for user {} (email {})', $.eventId, $.userId, $.email)",
+        "MessageAttributes": {
+          "status": {
+            "DataType": "String",
+            "StringValue": "WAITLISTED"
+          },
+          "eventId": {
+            "DataType": "String",
+            "StringValue.$": "$.eventId"
+          },
+          "email": {
+            "DataType": "String",
+            "StringValue.$": "$.email"
+          }
+        }
+      },
+      "End": true
+    },
+    "RegistrationFailed": {
+      "Type": "Fail",
+      "Error": "RegistrationFailed",
+      "Cause": "Unhandled error in the reservation workflow - inspect the execution history in the Step Functions console."
+    }
+  }
+}
