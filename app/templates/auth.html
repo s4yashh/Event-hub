@@ -18,3 +18,32 @@
   </aside>
 
   <div class="auth-panel">
+    <div class="auth-card">
+      <div class="auth-card-mark">{{ icon('ticket-star', 24) }}</div>
+      {% if mode == 'signup' %}
+        <span class="form-kicker">A SEAT AT THE TABLE</span>
+        <h2>Create your account</h2>
+        <p class="auth-intro">It takes a minute. The good plans last longer.</p>
+        <form method="post" class="form-stack" data-loading-form>
+          <label class="field"><span>Full name</span><input name="name" type="text" placeholder="Your name" autocomplete="name" required autofocus></label>
+          <label class="field"><span>Email address</span><input name="email" type="email" placeholder="you@gmail.com" autocomplete="email" required></label>
+          <label class="field"><span>Password</span><input name="password" type="password" placeholder="At least 8 characters" autocomplete="new-password" minlength="8" required><small>Use at least 8 characters.</small></label>
+          <button class="button button-dark button-full" type="submit" data-loading-label="Creating your account">Create account {{ icon('arrow', 16) }}</button>
+        </form>
+        <p class="auth-switch">Already with us? <a href="{{ url_for('login') }}">Sign in</a></p>
+      {% else %}
+        <span class="form-kicker">PICK UP WHERE YOU LEFT OFF</span>
+        <h2>Welcome back</h2>
+        <p class="auth-intro">Sign in and get back to making plans.</p>
+        <form method="post" class="form-stack" data-loading-form>
+          <label class="field"><span>Email address</span><input name="email" type="email" placeholder="you@gmail.com" autocomplete="email" required autofocus></label>
+          <label class="field"><span>Password</span><input name="password" type="password" placeholder="Your password" autocomplete="current-password" required></label>
+          <button class="button button-dark button-full" type="submit" data-loading-label="Signing you in">Sign in {{ icon('arrow', 16) }}</button>
+        </form>
+        <p class="auth-switch">New to EventHub? <a href="{{ url_for('signup') }}">Create an account</a></p>
+      {% endif %}
+      <div class="auth-assurance">{{ icon('shield', 15) }} Your account details are protected.</div>
+    </div>
+  </div>
+</section>
+{% endblock %}
