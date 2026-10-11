@@ -45,3 +45,30 @@ aws cloudwatch put-metric-alarm --alarm-name eventhub-sfn-failed \
   --alarm-actions "$TOPIC_ARN"
 echo "      alarm eventhub-sfn-failed (any failed execution)"
 
+# ---- 2. Dashboard -----------------------------------------------------------
+cat > /tmp/dashboard.json <<EOF
+{
+  "widgets": [
+    {"type":"metric","x":0,"y":0,"width":12,"height":6,"properties":{
+      "title":"SQS backlog (main + DLQ)","region":"ap-south-1","stat":"Maximum","period":300,
+      "metrics":[
+        ["AWS/SQS","ApproximateNumberOfMessagesVisible","QueueName","eventhub-registrations"],
+        [".","ApproximateNumberOfMessagesVisible","QueueName","eventhub-registrations-dlq"]]}},
+    {"type":"metric","x":12,"y":0,"width":12,"height":6,"properties":{
+      "title":"Step Functions executions","region":"ap-south-1","stat":"Sum","period":300,
+      "metrics":[
+        ["AWS/States","ExecutionsSucceeded","StateMachineArn","$SM_ARN"],
+        [".","ExecutionsFailed","StateMachineArn","$SM_ARN"]]}},
+    {"type":"metric","x":0,"y":6,"width":12,"height":6,"properties":{
+      "title":"EC2 CPU %","region":"ap-south-1","stat":"Average","period":300,
+      "metrics":[["AWS/EC2","CPUUtilization","InstanceId","$INSTANCE_ID"]]}},
+    {"type":"metric","x":12,"y":6,"width":12,"height":6,"properties":{
+      "title":"Seat-race losers (DynamoDB conditional check failures)","region":"ap-south-1","stat":"Sum","period":300,
+      "metrics":[["AWS/DynamoDB","ConditionalCheckFailedRequests","TableName","EventSeats"]]}}
+  ]
+}
+EOF
+aws cloudwatch put-dashboard --dashboard-name eventhub-dashboard \
+  --dashboard-body file:///tmp/dashboard.json >/dev/null
+echo "[2/3] dashboard eventhub-dashboard (4 widgets)"
+
