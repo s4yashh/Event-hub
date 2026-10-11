@@ -92,3 +92,49 @@
         }
       ],
       "Next": "NotifyConfirmed",
+      "ResultPath": null
+    },
+    "NotifyConfirmed": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:ap-south-1:<ACCOUNT_ID>:eventhub-notifications",
+        "Message.$": "States.Format('CONFIRMED: seat reserved for event {} (user {}, email {})', $.eventId, $.userId, $.email)",
+        "MessageAttributes": {
+          "status": {
+            "DataType": "String",
+            "StringValue": "CONFIRMED"
+          },
+          "eventId": {
+            "DataType": "String",
+            "StringValue.$": "$.eventId"
+          },
+          "email": {
+            "DataType": "String",
+            "StringValue.$": "$.email"
+          }
+        }
+      },
+      "End": true
+    },
+    "WriteWaitlisted": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:putItem",
+      "Parameters": {
+        "TableName": "Registrations",
+        "Item": {
+          "eventId": {
+            "S.$": "$.eventId"
+          },
+          "userId": {
+            "S.$": "$.userId"
+          },
+          "email": {
+            "S.$": "$.email"
+          },
+          "status": {
+            "S": "WAITLISTED"
+          },
+          "timestamp": {
+            "S.$": "$$.State.EnteredTime"
+          }
