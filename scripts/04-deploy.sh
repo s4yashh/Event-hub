@@ -53,3 +53,34 @@ echo "[2/4] copying app to the instance and running setup.sh ..."
 scp "${SSH_OPTS[@]}" -r "$PROJECT_DIR/app" "ec2-user@$EC2_IP:/home/ec2-user/eventhub-app"
 ssh "${SSH_OPTS[@]}" "ec2-user@$EC2_IP" 'sudo bash /home/ec2-user/eventhub-app/setup.sh'
 
+# ---- 3. load schema + seed (on the instance, using its IAM role) -----------
+echo "[3/4] loading schema + seed into RDS ..."
+ssh "${SSH_OPTS[@]}" "ec2-user@$EC2_IP" 'bash -s' <<'REMOTE'
+set -e
+DBHOST=$(aws ssm get-parameter --name /eventhub/db-host --query Parameter.Value --output text)
+DBUSER=$(aws ssm get-parameter --name /eventhub/db-user --query Parameter.Value --output text)
+DBNAME=$(aws ssm get-parameter --name /eventhub/db-name --query Parameter.Value --output text)
+DBPASS=$(aws ssm get-parameter --name /eventhub/db-password --with-decryption --query Parameter.Value --output text)
+MYSQL=$(command -v mysql || command -v mariadb)
+export MYSQL_PWD="$DBPASS"
+$MYSQL -h "$DBHOST" -u "$DBUSER" "$DBNAME" < /opt/eventhub/schema.sql
+COUNT=$($MYSQL -h "$DBHOST" -u "$DBUSER" "$DBNAME" -Nse "SELECT COUNT(*) FROM events")
+if [ "$COUNT" = "0" ]; then
+  $MYSQL -h "$DBHOST" -u "$DBUSER" "$DBNAME" < /opt/eventhub/seed.sql
+fi
+echo "      events table now:"
+$MYSQL -h "$DBHOST" -u "$DBUSER" "$DBNAME" -e "SELECT id, title FROM events"
+REMOTE
+
+# ---- 4. verify web ----------------------------------------------------------
+sleep 3
+CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://$EC2_IP/")
+echo "[4/4] web app HTTP status: $CODE (302 = redirect to /login = healthy)"
+echo
+cat <<DONE
+============================================================
+DEPLOY DONE
+Website: http://$EC2_IP/
+(302 on / means the app is up; open it in a browser to see it)
+============================================================
+DONE
