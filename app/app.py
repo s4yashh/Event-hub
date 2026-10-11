@@ -127,3 +127,33 @@ def login():
     return render_template("auth.html", page_title="Welcome back", mode="login")
 
 
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("You have been signed out.", "info")
+    return redirect(url_for("home"))
+
+
+@app.route("/events")
+@login_required
+def events():
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            """SELECT e.id, e.title, e.description, e.event_date, e.venue,
+                      c.name AS club
+               FROM events e JOIN clubs c ON c.id = e.club_id
+               ORDER BY e.event_date"""
+        )
+        rows = cur.fetchall()
+    seats_table = ddb.Table(SEATS_TABLE)
+    for event in rows:
+        item = seats_table.get_item(Key={"eventId": str(event["id"])}).get("Item")
+        event["seats"] = int(item["seatsAvailable"]) if item else None
+    return render_template(
+        "events.html",
+        page_title="Explore events",
+        events=rows,
+        clubs=sorted({event["club"] for event in rows}),
+        user_name=session.get("user_name"),
+    )
+
