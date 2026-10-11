@@ -17,3 +17,22 @@
     {% if registrations %}<div class="ticket-filters" role="group" aria-label="Filter tickets"><button type="button" class="ticket-filter is-selected" data-ticket-filter="all" aria-pressed="true">All</button><button type="button" class="ticket-filter" data-ticket-filter="CONFIRMED" aria-pressed="false">Confirmed</button><button type="button" class="ticket-filter" data-ticket-filter="WAITLISTED" aria-pressed="false">Waitlisted</button></div>{% endif %}
   </div>
 
+  {% if registrations %}
+    <section class="ticket-list" id="ticket-list" aria-label="Your registrations">
+      {% for registration in registrations %}
+        <article class="ticket-row {{ 'ticket-confirmed' if registration.status == 'CONFIRMED' else 'ticket-waitlisted' }}" data-ticket-row data-status="{{ registration.status }}">
+          <div class="ticket-date"><span>{{ registration.timestamp[5:7] }}</span><strong>{{ registration.timestamp[8:10] }}</strong><small>RECENT</small></div>
+          <div class="ticket-row-main"><span class="ticket-club">EVENTHUB / CAMPUS</span><h3>{{ registration.title }}</h3><span class="ticket-email">{{ registration.email }}</span></div>
+          <div class="ticket-row-side">{% if registration.status == 'CONFIRMED' %}<span class="registration-badge badge-confirmed">{{ icon('check', 15) }} Confirmed</span>{% else %}<span class="registration-badge badge-waitlisted">{{ icon('clock', 15) }} Waitlisted</span>{% endif %}<time class="ticket-time" data-local-time="{{ registration.timestamp }}">{{ registration.timestamp[:16].replace('T', ' ') }}</time></div>
+          <span class="ticket-perforation" aria-hidden="true"></span>
+        </article>
+      {% endfor %}
+    </section>
+    <div class="no-results" id="no-tickets" hidden><span class="no-results-icon">{{ icon('ticket', 24) }}</span><h3>No tickets in this filter</h3><p>Choose another status to see your registrations.</p></div>
+  {% else %}
+    <section class="ticket-empty"><div class="empty-illustration"><div class="empty-ticket">{{ icon('ticket-star', 40) }}</div><span class="empty-spark empty-spark-one">{{ icon('spark', 20) }}</span><span class="empty-spark empty-spark-two">{{ icon('spark', 14) }}</span></div><span class="section-kicker">YOUR STORY STARTS HERE</span><h2>No tickets just yet.</h2><p>There are good things happening on campus. Find an event and make it yours.</p><a class="button button-dark" href="{{ url_for('events') }}">Explore events {{ icon('arrow', 16) }}</a></section>
+  {% endif %}
+
+  <a class="back-to-events" href="{{ url_for('events') }}">{{ icon('arrow', 16) }} Explore more events</a>
+</div>
+{% endblock %}
