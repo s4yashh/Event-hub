@@ -15,3 +15,19 @@ set -euo pipefail
 APP_SRC="$(cd "$(dirname "$0")" && pwd)"
 APP_DIR=/opt/eventhub
 
+echo "==> Installing packages (python3-pip, mysql client)"
+sudo dnf install -y python3-pip mariadb105
+
+echo "==> Copying app to ${APP_DIR}"
+sudo mkdir -p "${APP_DIR}"
+sudo cp -r "${APP_SRC}/." "${APP_DIR}/"
+sudo chown -R ec2-user:ec2-user "${APP_DIR}"
+
+echo "==> Creating virtualenv and installing requirements"
+cd "${APP_DIR}"
+if [ ! -d venv ]; then
+  python3 -m venv venv
+fi
+./venv/bin/pip install --upgrade pip -q
+./venv/bin/pip install -r requirements.txt -q
+
