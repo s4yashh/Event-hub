@@ -1,0 +1,15 @@
+[Unit]
+Description=EventHub SQS worker (starts Step Functions executions)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ec2-user
+WorkingDirectory=/opt/eventhub
+Environment=AWS_DEFAULT_REGION=ap-south-1
+ExecStart=/opt/eventhub/venv/bin/python /opt/eventhub/worker.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
