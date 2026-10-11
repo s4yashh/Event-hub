@@ -72,3 +72,57 @@ aws cloudwatch put-dashboard --dashboard-name eventhub-dashboard \
   --dashboard-body file:///tmp/dashboard.json >/dev/null
 echo "[2/3] dashboard eventhub-dashboard (4 widgets)"
 
+# ---- 3. CloudTrail ----------------------------------------------------------
+BUCKET="eventhub-cloudtrail-$ACCOUNT_ID"
+if aws s3api head-bucket --bucket "$BUCKET" >/dev/null 2>&1; then
+  echo "[3/3] trail bucket exists"
+else
+  aws s3api create-bucket --bucket "$BUCKET" \
+    --create-bucket-configuration LocationConstraint="$REGION" >/dev/null
+  cat > /tmp/bucket-policy.json <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AWSCloudTrailAclCheck",
+      "Effect": "Allow",
+      "Principal": { "Service": "cloudtrail.amazonaws.com" },
+      "Action": "s3:GetBucketAcl",
+      "Resource": "arn:aws:s3:::$BUCKET"
+    },
+    {
+      "Sid": "AWSCloudTrailWrite",
+      "Effect": "Allow",
+      "Principal": { "Service": "cloudtrail.amazonaws.com" },
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::$BUCKET/AWSLogs/$ACCOUNT_ID/*",
+      "Condition": { "StringEquals": { "s3:x-amz-acl": "bucket-owner-full-control" } }
+    }
+  ]
+}
+EOF
+  aws s3api put-bucket-policy --bucket "$BUCKET" --policy file:///tmp/bucket-policy.json
+  cat > /tmp/lifecycle.json <<'EOF'
+{"Rules":[{"ID":"expire-30d","Status":"Enabled","Filter":{"Prefix":""},"Expiration":{"Days":30}}]}
+EOF
+  aws s3api put-bucket-lifecycle-configuration --bucket "$BUCKET" \
+    --lifecycle-configuration file:///tmp/lifecycle.json
+  echo "      trail bucket $BUCKET created (policy + 30-day lifecycle)"
+fi
+
+if aws cloudtrail get-trail --name eventhub-trail >/dev/null 2>&1; then
+  echo "      trail exists"
+else
+  aws cloudtrail create-trail --name eventhub-trail --s3-bucket-name "$BUCKET" >/dev/null
+  aws cloudtrail start-logging --name eventhub-trail
+  echo "      trail eventhub-trail created + logging started (management events only)"
+fi
+
+echo
+echo "alarms:"
+aws cloudwatch describe-alarms \
+  --alarm-names eventhub-cpu-high eventhub-dlq-not-empty eventhub-sfn-failed \
+  --query 'MetricAlarms[*].[AlarmName,StateValue]' --output table
+echo "trail status:"
+aws cloudtrail get-trail-status --name eventhub-trail --query 'IsLogging' --output text
+echo "MONITORING DONE"
