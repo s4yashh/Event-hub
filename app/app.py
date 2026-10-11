@@ -108,3 +108,22 @@ def signup():
                 flash("That email is already registered. Try signing in instead.", "error")
     return render_template("auth.html", page_title="Create your account", mode="signup")
 
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        with db() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM users WHERE email = %s",
+                (request.form["email"].strip().lower(),),
+            )
+            user = cur.fetchone()
+        if user and check_password_hash(user["password_hash"], request.form["password"]):
+            session.update(
+                user_id=user["id"], user_name=user["name"], user_email=user["email"]
+            )
+            return redirect(url_for("events"))
+        flash("Those details did not match an account. Please try again.", "error")
+    return render_template("auth.html", page_title="Welcome back", mode="login")
+
+
