@@ -47,3 +47,34 @@ def db():
     )
 
 
+def login_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not session.get("user_id"):
+            return redirect(url_for("login"))
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+def ensure_notification_subscription(email: str) -> None:
+    """Subscribe the student's address with an email filter so they receive
+    only their own notifications. Best effort: never blocks registration.
+
+    SNS delivers only to confirmed subscribers, so a new student receives a
+    one-time AWS confirmation email; after confirming, status updates reach
+    them. The workflow publishes an `email` message attribute that the
+    filter policy matches against.
+    """
+    try:
+        sns.subscribe(
+            TopicArn=param("sns-topic-arn"),
+            Protocol="email",
+            Endpoint=email,
+            Attributes={"FilterPolicy": json.dumps({"email": [email]})},
+        )
+        app.logger.info("notification subscription requested for %s", email)
+    except Exception:
+        app.logger.warning(
+            "notification subscription failed for %s", email, exc_info=True
+        )
+
