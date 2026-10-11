@@ -1,7 +1,58 @@
 {
-  "Comment": "EventHub seat reservation workflow. Input: {eventId, userId, email}. Atomic seat reservation uses a DynamoDB conditional write; when the condition fails the student is waitlisted instead.",
-  "StartAt": "ReserveSeat",
+  "Comment": "EventHub registration workflow. Input: {eventId, userId, email}. Each student first claims a unique registration record (duplicate-safe), then the workflow atomically reserves a seat; a full event routes to the waitlist.",
+  "StartAt": "ClaimRegistration",
   "States": {
+    "ClaimRegistration": {
+      "Type": "Task",
+      "Comment": "PutItem with attribute_not_exists(...) so only the first request for this (eventId, userId) proceeds. Duplicate clicks or re-delivered messages fail the condition and end without consuming a seat.",
+      "Resource": "arn:aws:states:::dynamodb:putItem",
+      "Parameters": {
+        "TableName": "Registrations",
+        "Item": {
+          "eventId": { "S.$": "$.eventId" },
+          "userId": { "S.$": "$.userId" },
+          "email": { "S.$": "$.email" },
+          "status": { "S": "PROCESSING" },
+          "timestamp": { "S.$": "$$.State.EnteredTime" }
+        },
+        "ConditionExpression": "attribute_not_exists(eventId) AND attribute_not_exists(userId)"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "DynamoDB.ProvisionedThroughputExceededException",
+            "DynamoDB.RequestLimitExceeded",
+            "DynamoDB.ThrottlingException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 4,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["DynamoDB.ConditionalCheckFailedException"],
+          "Comment": "This student already has a registration record for the event.",
+          "Next": "AlreadyRegistered",
+          "ResultPath": "$.duplicateError"
+        },
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Comment": "Unexpected failure while claiming the registration.",
+          "Next": "RegistrationFailed"
+        }
+      ],
+      "Next": "ReserveSeat",
+      "ResultPath": null
+    },
+
+    "AlreadyRegistered": {
+      "Type": "Pass",
+      "Comment": "Duplicate request - the existing ticket stands; no seat is decremented and no new notification is sent.",
+      "Result": { "duplicate": true },
+      "End": true
+    },
+
     "ReserveSeat": {
       "Type": "Task",
       "Comment": "SET seatsAvailable = seatsAvailable - :one, only if seatsAvailable > :zero. This is the atomic no-overbooking step.",
@@ -9,19 +60,13 @@
       "Parameters": {
         "TableName": "EventSeats",
         "Key": {
-          "eventId": {
-            "S.$": "$.eventId"
-          }
+          "eventId": { "S.$": "$.eventId" }
         },
         "UpdateExpression": "SET seatsAvailable = seatsAvailable - :one",
         "ConditionExpression": "seatsAvailable > :zero",
         "ExpressionAttributeValues": {
-          ":one": {
-            "N": "1"
-          },
-          ":zero": {
-            "N": "0"
-          }
+          ":one": { "N": "1" },
+          ":zero": { "N": "0" }
         }
       },
       "Retry": [
@@ -38,17 +83,13 @@
       ],
       "Catch": [
         {
-          "ErrorEquals": [
-            "DynamoDB.ConditionalCheckFailedException"
-          ],
+          "ErrorEquals": ["DynamoDB.ConditionalCheckFailedException"],
           "Comment": "Event is full -> waitlist path.",
           "Next": "WriteWaitlisted",
           "ResultPath": "$.reserveError"
         },
         {
-          "ErrorEquals": [
-            "States.ALL"
-          ],
+          "ErrorEquals": ["States.ALL"],
           "Comment": "Any other error -> visible as a failed execution in the Step Functions console.",
           "Next": "RegistrationFailed"
         }
@@ -56,27 +97,25 @@
       "Next": "WriteConfirmed",
       "ResultPath": null
     },
+
     "WriteConfirmed": {
       "Type": "Task",
-      "Resource": "arn:aws:states:::dynamodb:putItem",
+      "Comment": "Update the record claimed earlier to its final status.",
+      "Resource": "arn:aws:states:::dynamodb:updateItem",
       "Parameters": {
         "TableName": "Registrations",
-        "Item": {
-          "eventId": {
-            "S.$": "$.eventId"
-          },
-          "userId": {
-            "S.$": "$.userId"
-          },
-          "email": {
-            "S.$": "$.email"
-          },
-          "status": {
-            "S": "CONFIRMED"
-          },
-          "timestamp": {
-            "S.$": "$$.State.EnteredTime"
-          }
+        "Key": {
+          "eventId": { "S.$": "$.eventId" },
+          "userId": { "S.$": "$.userId" }
+        },
+        "UpdateExpression": "SET #status = :status, #timestamp = :timestamp",
+        "ExpressionAttributeNames": {
+          "#status": "status",
+          "#timestamp": "timestamp"
+        },
+        "ExpressionAttributeValues": {
+          ":status": { "S": "CONFIRMED" },
+          ":timestamp": { "S.$": "$$.State.EnteredTime" }
         }
       },
       "Retry": [
@@ -94,6 +133,7 @@
       "Next": "NotifyConfirmed",
       "ResultPath": null
     },
+
     "NotifyConfirmed": {
       "Type": "Task",
       "Resource": "arn:aws:states:::sns:publish",
@@ -101,43 +141,32 @@
         "TopicArn": "arn:aws:sns:ap-south-1:<ACCOUNT_ID>:eventhub-notifications",
         "Message.$": "States.Format('CONFIRMED: seat reserved for event {} (user {}, email {})', $.eventId, $.userId, $.email)",
         "MessageAttributes": {
-          "status": {
-            "DataType": "String",
-            "StringValue": "CONFIRMED"
-          },
-          "eventId": {
-            "DataType": "String",
-            "StringValue.$": "$.eventId"
-          },
-          "email": {
-            "DataType": "String",
-            "StringValue.$": "$.email"
-          }
+          "status": { "DataType": "String", "StringValue": "CONFIRMED" },
+          "eventId": { "DataType": "String", "StringValue.$": "$.eventId" },
+          "email": { "DataType": "String", "StringValue.$": "$.email" }
         }
       },
       "End": true
     },
+
     "WriteWaitlisted": {
       "Type": "Task",
-      "Resource": "arn:aws:states:::dynamodb:putItem",
+      "Comment": "Update the record claimed earlier to its final status.",
+      "Resource": "arn:aws:states:::dynamodb:updateItem",
       "Parameters": {
         "TableName": "Registrations",
-        "Item": {
-          "eventId": {
-            "S.$": "$.eventId"
-          },
-          "userId": {
-            "S.$": "$.userId"
-          },
-          "email": {
-            "S.$": "$.email"
-          },
-          "status": {
-            "S": "WAITLISTED"
-          },
-          "timestamp": {
-            "S.$": "$$.State.EnteredTime"
-          }
+        "Key": {
+          "eventId": { "S.$": "$.eventId" },
+          "userId": { "S.$": "$.userId" }
+        },
+        "UpdateExpression": "SET #status = :status, #timestamp = :timestamp",
+        "ExpressionAttributeNames": {
+          "#status": "status",
+          "#timestamp": "timestamp"
+        },
+        "ExpressionAttributeValues": {
+          ":status": { "S": "WAITLISTED" },
+          ":timestamp": { "S.$": "$$.State.EnteredTime" }
         }
       },
       "Retry": [
@@ -155,6 +184,7 @@
       "Next": "NotifyWaitlisted",
       "ResultPath": null
     },
+
     "NotifyWaitlisted": {
       "Type": "Task",
       "Resource": "arn:aws:states:::sns:publish",
@@ -162,26 +192,18 @@
         "TopicArn": "arn:aws:sns:ap-south-1:<ACCOUNT_ID>:eventhub-notifications",
         "Message.$": "States.Format('WAITLISTED: event {} is full for user {} (email {})', $.eventId, $.userId, $.email)",
         "MessageAttributes": {
-          "status": {
-            "DataType": "String",
-            "StringValue": "WAITLISTED"
-          },
-          "eventId": {
-            "DataType": "String",
-            "StringValue.$": "$.eventId"
-          },
-          "email": {
-            "DataType": "String",
-            "StringValue.$": "$.email"
-          }
+          "status": { "DataType": "String", "StringValue": "WAITLISTED" },
+          "eventId": { "DataType": "String", "StringValue.$": "$.eventId" },
+          "email": { "DataType": "String", "StringValue.$": "$.email" }
         }
       },
       "End": true
     },
+
     "RegistrationFailed": {
       "Type": "Fail",
       "Error": "RegistrationFailed",
-      "Cause": "Unhandled error in the reservation workflow - inspect the execution history in the Step Functions console."
+      "Cause": "Unhandled error in the registration workflow - inspect the execution history in the Step Functions console."
     }
   }
 }
