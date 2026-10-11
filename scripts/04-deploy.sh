@@ -23,3 +23,33 @@ SSH_OPTS=(-i "$KEY_FILE" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=8
 
 echo "== EventHub deploy =="
 
+# ---- 0. wait for RDS + store db-host ---------------------------------------
+if aws ssm get-parameter --name /eventhub/db-host >/dev/null 2>&1; then
+  echo "[0/4] db-host parameter already exists"
+else
+  echo "[0/4] waiting for RDS eventhub-mysql to become available (can take ~10 min)..."
+  aws rds wait db-instance-available --db-instance-identifier eventhub-mysql
+  DB_HOST=$(aws rds describe-db-instances --db-instance-identifier eventhub-mysql \
+    --query 'DBInstances[0].Endpoint.Address' --output text)
+  aws ssm put-parameter --name /eventhub/db-host --type String --value "$DB_HOST" --overwrite >/dev/null
+  echo "      db-host stored: $DB_HOST"
+fi
+
+# ---- 1. wait for SSH --------------------------------------------------------
+echo "[1/4] waiting for SSH on ec2-user@$EC2_IP ..."
+REACHED=0
+for _ in $(seq 1 40); do
+  if ssh "${SSH_OPTS[@]}" "ec2-user@$EC2_IP" true 2>/dev/null; then REACHED=1; break; fi
+  sleep 5
+done
+if [ "$REACHED" != "1" ]; then
+  echo "!! SSH not reachable. Check that your IP is still $MY_IP-compatible in eventhub-web-sg."
+  exit 1
+fi
+echo "      SSH OK"
+
+# ---- 2. copy app + bootstrap the instance ----------------------------------
+echo "[2/4] copying app to the instance and running setup.sh ..."
+scp "${SSH_OPTS[@]}" -r "$PROJECT_DIR/app" "ec2-user@$EC2_IP:/home/ec2-user/eventhub-app"
+ssh "${SSH_OPTS[@]}" "ec2-user@$EC2_IP" 'sudo bash /home/ec2-user/eventhub-app/setup.sh'
+
