@@ -178,3 +178,76 @@ cat > /tmp/ec2-trust.json <<'TRUST'
 }
 TRUST
 
+cat > /tmp/ec2-policy.json <<'POLICY'
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadSeatCountsForEventList",
+      "Effect": "Allow",
+      "Action": "dynamodb:GetItem",
+      "Resource": "arn:aws:dynamodb:ap-south-1:061039790916:table/EventSeats"
+    },
+    {
+      "Sid": "ReadOwnRegistrations",
+      "Effect": "Allow",
+      "Action": ["dynamodb:GetItem", "dynamodb:Scan"],
+      "Resource": "arn:aws:dynamodb:ap-south-1:061039790916:table/Registrations"
+    },
+    {
+      "Sid": "WebAppSendsRegistrationIntents",
+      "Effect": "Allow",
+      "Action": "sqs:SendMessage",
+      "Resource": "arn:aws:sqs:ap-south-1:061039790916:eventhub-registrations"
+    },
+    {
+      "Sid": "WorkerConsumesRegistrationQueue",
+      "Effect": "Allow",
+      "Action": ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:ChangeMessageVisibility"],
+      "Resource": "arn:aws:sqs:ap-south-1:061039790916:eventhub-registrations"
+    },
+    {
+      "Sid": "WorkerStartsRegistrationWorkflow",
+      "Effect": "Allow",
+      "Action": "states:StartExecution",
+      "Resource": "arn:aws:states:ap-south-1:061039790916:stateMachine:eventhub-register"
+    },
+    {
+      "Sid": "ReadConfigurationParameters",
+      "Effect": "Allow",
+      "Action": "ssm:GetParameter",
+      "Resource": "arn:aws:ssm:ap-south-1:061039790916:parameter/eventhub/*"
+    },
+    {
+      "Sid": "DecryptSecureStringsOnlyViaSSM",
+      "Effect": "Allow",
+      "Action": "kms:Decrypt",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": { "kms:ViaService": "ssm.ap-south-1.amazonaws.com" }
+      }
+    },
+    {
+      "Sid": "SubscribeStudentsForNotifications",
+      "Effect": "Allow",
+      "Action": [
+        "sns:Subscribe",
+        "sns:SetSubscriptionAttributes"
+      ],
+      "Resource": "arn:aws:sns:ap-south-1:061039790916:eventhub-notifications"
+    }
+  ]
+}
+POLICY
+
+aws iam create-role --role-name CloudProject-EC2-Role \
+  --assume-role-policy-document file:///tmp/ec2-trust.json >/dev/null
+aws iam put-role-policy --role-name CloudProject-EC2-Role \
+  --policy-name CloudProject-EC2-Policy \
+  --policy-document file:///tmp/ec2-policy.json
+aws iam create-instance-profile --instance-profile-name CloudProject-EC2-Profile >/dev/null
+aws iam add-role-to-instance-profile \
+  --instance-profile-name CloudProject-EC2-Profile \
+  --role-name CloudProject-EC2-Role
+echo "[3/4] EC2 role + instance profile created"
+
