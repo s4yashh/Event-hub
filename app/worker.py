@@ -44,3 +44,19 @@ def param(name: str) -> str:
 REQUIRED_FIELDS = ("eventId", "userId", "email")
 
 
+def process(message: dict) -> None:
+    """Validate one message and start a workflow execution for it."""
+    body = json.loads(message["Body"])          # raises on poison messages
+    missing = [f for f in REQUIRED_FIELDS if f not in body]
+    if missing:
+        raise ValueError(f"message missing fields: {missing}")
+
+    sfn.start_execution(
+        stateMachineArn=param("state-machine-arn"),
+        input=json.dumps(body),
+    )
+    sqs.delete_message(QueueUrl=param("queue-url"),
+                       ReceiptHandle=message["ReceiptHandle"])
+    log.info("started execution for event=%s user=%s", body["eventId"], body["userId"])
+
+
