@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block content %}
+<section class="auth-layout content-shell">
+  <aside class="auth-story">
+    <div class="auth-story-inner">
+      <span class="eyebrow eyebrow-light"><span class="eyebrow-line"></span> A BETTER WAY TO BE THERE</span>
+      {% if mode == 'signup' %}
+        <h1>Your next<br>great story<br><span>starts here.</span></h1>
+        <p>Join once. Find the events that feel like you. Keep every ticket in one place.</p>
+      {% else %}
+        <h1>Good to see<br>you <span>again.</span></h1>
+        <p>Your next workshop, open mic, or campus moment is only a few clicks away.</p>
+      {% endif %}
+      <div class="story-benefits"><span>{{ icon('check', 16) }} Seat counts stay fair</span><span>{{ icon('check', 16) }} Your tickets, all together</span><span>{{ icon('check', 16) }} Helpful email updates</span></div>
+      <div class="auth-decoration" aria-hidden="true"><div class="deco-ring"></div><div class="deco-ticket">{{ icon('ticket-star', 38) }}</div><span class="deco-spark">{{ icon('spark', 30) }}</span></div>
+    </div>
+  </aside>
+
