@@ -61,3 +61,13 @@ for T in EventSeats Registrations; do
   fi
 done
 
+COUNT=$(aws dynamodb scan --table-name EventSeats --select COUNT --query Count --output text)
+if [ "$COUNT" = "0" ]; then
+  aws dynamodb put-item --table-name EventSeats --item '{"eventId":{"S":"1"},"seatsAvailable":{"N":"2"}}'
+  aws dynamodb put-item --table-name EventSeats --item '{"eventId":{"S":"2"},"seatsAvailable":{"N":"50"}}'
+  aws dynamodb put-item --table-name EventSeats --item '{"eventId":{"S":"3"},"seatsAvailable":{"N":"0"}}'
+  echo "      seeded EventSeats: event 1 = 2 seats, event 2 = 50, event 3 = 0"
+else
+  echo "      EventSeats already has items (not reseeding)"
+fi
+
