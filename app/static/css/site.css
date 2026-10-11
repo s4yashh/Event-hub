@@ -334,3 +334,96 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 
 /* Tablet and mobile layouts */
 @media (max-width: 900px) {
+  .landing-hero { min-height: 490px; grid-template-columns: 1fr .78fr; padding: 52px 44px; }
+  .hero-copy h1 { font-size: clamp(3.15rem, 6.4vw, 4.5rem); }
+  .hero-art { min-height: 340px; }
+  .ticket-card { width: min(300px, 94%); }
+  .ticket-art-mark { min-height: 170px; }
+  .event-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .auth-story { padding: 38px; }
+  .auth-decoration { opacity: .56; }
+}
+@media (max-width: 680px) {
+  .content-shell, .nav-shell, .footer-shell { width: min(100% - 32px, var(--max-width)); }
+  .nav-shell { min-height: 66px; flex-wrap: wrap; gap: 0; }
+  .menu-toggle { display: grid; }
+  .nav-links { position: absolute; top: calc(100% + 1px); right: 0; left: 0; display: none; align-items: stretch; padding: 12px 16px 16px; background: var(--paper); border-bottom: 1px solid var(--line); box-shadow: 0 15px 24px rgba(32,37,48,.08); }
+  .nav-links.is-open { display: grid; }
+  .nav-link { min-height: 43px; justify-content: flex-start; padding-inline: 13px; }
+  .nav-divider { display: none; }
+  .profile-chip { margin: 4px 0; }
+  .nav-links .button { width: 100%; }
+  .landing-hero { min-height: auto; grid-template-columns: 1fr; gap: 8px; margin-top: 15px; padding: 39px 25px 25px; border-radius: 23px; }
+  .hero-copy h1 { margin-top: 18px; font-size: clamp(3rem, 13.5vw, 4.4rem); }
+  .hero-description { font-size: .9rem; }
+  .hero-actions { align-items: stretch; flex-direction: column; margin-top: 23px; }
+  .hero-actions .button { width: 100%; }
+  .hero-proof { margin-top: 22px; }
+  .hero-art { min-height: 280px; margin-top: 5px; }
+  .orbit-one { width: 300px; height: 235px; }
+  .orbit-two { width: 260px; height: 330px; }
+  .ticket-card { width: 270px; padding: 17px 19px 15px; }
+  .ticket-art-mark { min-height: 145px; }
+  .ticket-cut { bottom: 53px; }
+  .note-top { top: 7px; right: 0; }
+  .note-bottom { bottom: 5px; left: 0; }
+  .trust-inner { width: calc(100% - 32px); min-height: auto; align-items: flex-start; flex-direction: column; gap: 13px; padding: 22px 5px; }
+  .trust-separator { display: none; }
+  .trust-inner > span:not(.trust-separator) { font-size: .78rem; }
+  .how-section { padding-top: 68px; padding-bottom: 70px; }
+  .section-heading { align-items: flex-start; flex-direction: column; gap: 13px; margin-bottom: 25px; }
+  .section-heading h2 { font-size: 2.65rem; }
+  .steps-grid { grid-template-columns: 1fr; gap: 10px; }
+  .step-card { min-height: 190px; padding: 21px; }
+  .step-icon { margin-bottom: 19px; }
+  .closing-inner { width: calc(100% - 32px); min-height: 315px; align-items: flex-start; flex-direction: column; justify-content: center; gap: 24px; padding-block: 43px; }
+  .closing-inner h2 { font-size: 2.9rem; }
+  .doodle-one { right: -20px; font-size: 9rem; }
+  .doodle-two { right: 10%; font-size: 7rem; }
+  .auth-layout { grid-template-columns: 1fr; margin-top: 16px; margin-bottom: 31px; border-radius: 22px; }
+  .auth-story { min-height: 260px; padding: 29px 26px; }
+  .auth-story h1 { margin: 17px 0 8px; font-size: 3.15rem; }
+  .auth-story-inner > p { max-width: 420px; margin: 0; font-size: .82rem; }
+  .story-benefits { grid-template-columns: 1fr 1fr; gap: 8px 13px; margin-top: 18px; font-size: .7rem; }
+  .story-benefits span:last-child { display: none; }
+  .auth-decoration { display: none; }
+  .auth-panel { padding: 32px 23px 35px; }
+  .auth-card-mark { margin-bottom: 18px; }
+  .auth-card h2 { font-size: 1.85rem; }
+  .discover-heading, .tickets-heading { align-items: flex-start; padding: 40px 0 25px; }
+  .discover-heading h1, .tickets-heading h1 { font-size: clamp(2.8rem, 12vw, 4rem); }
+  .heading-stamp { width: 82px; height: 82px; margin-top: 20px; }
+  .stamp-main { font-size: 1.1rem; }
+  .stamp-top, .stamp-bottom { font-size: .39rem; }
+  .discover-heading p, .tickets-heading p { max-width: 400px; font-size: .85rem; }
+  .event-toolbar { padding: 11px; }
+  .filter-row { gap: 4px; }
+  .filter-chip { padding-inline: 10px; font-size: .7rem; }
+  .event-list-heading, .ticket-list-head { align-items: flex-start; flex-direction: column; gap: 10px; margin-top: 36px; }
+  .event-list-heading h2, .ticket-list-head h2 { font-size: 1.35rem; }
+  .event-grid { grid-template-columns: 1fr; gap: 13px; }
+  .event-art { height: 142px; }
+  .event-card-body { min-height: 265px; }
+  .tickets-count-mark { width: 74px; height: 94px; margin-top: 22px; }
+  .tickets-count-mark svg { width: 27px; height: 27px; }
+  .tickets-count-mark span { font-size: .48rem; }
+  .ticket-summary { gap: 7px; }
+  .summary-card { min-height: 103px; padding: 13px 11px; }
+  .summary-label { font-size: .51rem; letter-spacing: .08em; }
+  .summary-card strong { font-size: 1.75rem; }
+  .summary-caption { font-size: .6rem; }
+  .ticket-filters { max-width: 100%; }
+  .ticket-filter { padding-inline: 10px; font-size: .66rem; }
+  .ticket-row { grid-template-columns: 51px 1fr; gap: 12px; padding: 14px; }
+  .ticket-date { min-height: 64px; }
+  .ticket-date strong { font-size: 1.4rem; }
+  .ticket-date small { font-size: .42rem; }
+  .ticket-row-main h3 { font-size: .98rem; }
+  .ticket-row-side { grid-column: 2; display: flex; align-items: center; justify-content: space-between; }
+  .ticket-perforation { left: 72px; height: 42px; }
+  .ticket-empty { padding: 36px 20px; }
+  .footer-shell { min-height: 112px; align-items: flex-start; justify-content: center; flex-direction: column; gap: 7px; padding-block: 15px; }
+  .footer-shell > p { display: none; }
+  .footer-meta { font-size: .65rem; }
+  .toast-stack { top: 76px; right: 12px; }
+}
