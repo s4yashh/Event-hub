@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block content %}
+<div class="landing-page">
+  <section class="landing-hero content-shell">
+    <div class="hero-copy">
+      <div class="eyebrow"><span class="eyebrow-line"></span> THE CAMPUS, A LITTLE CLOSER</div>
+      <h1>Find your people.<br><span>Save your seat.</span></h1>
+      <p class="hero-description">The workshops, open mics, and late-night ideas that make campus feel like yours. Discover what’s happening and book a place in a couple of clicks.</p>
+      <div class="hero-actions">
+        <a class="button button-lime" href="{{ url_for('signup') }}">Find your next event {{ icon('arrow', 17) }}</a>
+        <a class="button button-quiet" href="{{ url_for('login') }}">I already have an account</a>
+      </div>
+      <div class="hero-proof"><span class="proof-avatars" aria-hidden="true"><i>c</i><i>m</i><i>+</i></span><span>Club-led events, one easy place</span></div>
+    </div>
+
