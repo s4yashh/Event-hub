@@ -59,3 +59,26 @@ else
   echo "[2/4] instance exists: $INSTANCE_ID"
 fi
 
+# ---- 3. wait until running + status checks green ----------------------------
+aws ec2 wait instance-running --instance-ids "$INSTANCE_ID"
+echo "[3/4] instance running; waiting for status checks (~2-4 min)..."
+aws ec2 wait instance-status-ok --instance-ids "$INSTANCE_ID"
+EC2_IP=$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" \
+  --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
+echo "      status OK; public IP: $EC2_IP"
+
+# ---- 4. save state ----------------------------------------------------------
+grep -v -e '^INSTANCE_ID=' -e '^EC2_IP=' "$STATE" > "$STATE.tmp" || true
+mv "$STATE.tmp" "$STATE"
+printf 'INSTANCE_ID=%s\nEC2_IP=%s\n' "$INSTANCE_ID" "$EC2_IP" >> "$STATE"
+echo "[4/4] state updated"
+
+cat <<DONE
+
+============================================================
+COMPUTE READY
+INSTANCE_ID=$INSTANCE_ID
+EC2_IP=$EC2_IP
+KEY=$KEY_FILE
+============================================================
+DONE
