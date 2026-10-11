@@ -32,3 +32,27 @@ if [ -n "${INSTANCE_ID:-}" ]; then
   fi
 fi
 
+echo "[2/12] RDS instance + subnet group (takes several minutes)"
+try aws rds delete-db-instance --db-instance-identifier eventhub-mysql \
+  --skip-final-snapshot --delete-automated-backups
+aws rds wait db-instance-deleted --db-instance-identifier eventhub-mysql 2>/dev/null || true
+try aws rds delete-db-subnet-group --db-subnet-group-name eventhub-db-subnet-group
+
+echo "[3/12] DynamoDB tables"
+try aws dynamodb delete-table --table-name EventSeats
+try aws dynamodb delete-table --table-name Registrations
+
+echo "[4/12] SQS queues"
+try aws sqs delete-queue --queue-url "https://sqs.${REGION}.amazonaws.com/${ACCOUNT_ID}/eventhub-registrations"
+try aws sqs delete-queue --queue-url "https://sqs.${REGION}.amazonaws.com/${ACCOUNT_ID}/eventhub-registrations-dlq"
+
+echo "[5/12] SNS topic"
+try aws sns delete-topic --topic-arn "arn:aws:sns:${REGION}:${ACCOUNT_ID}:eventhub-notifications"
+
+echo "[6/12] Step Functions state machine"
+SM_ARN=$(aws ssm get-parameter --name /eventhub/state-machine-arn \
+  --query Parameter.Value --output text 2>/dev/null || true)
+if [ -n "${SM_ARN:-}" ]; then
+  try aws stepfunctions delete-state-machine --state-machine-arn "$SM_ARN"
+fi
+
