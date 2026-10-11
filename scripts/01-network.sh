@@ -39,3 +39,56 @@ else
   echo "[1/7] VPC exists: $VPC_ID"
 fi
 
+# ---- 2. Subnets (first two available AZs) ----------------------------------
+AZ1=$(aws ec2 describe-availability-zones \
+  --query 'AvailabilityZones[?State==`available`].ZoneName' --output text | awk '{print $1}')
+AZ2=$(aws ec2 describe-availability-zones \
+  --query 'AvailabilityZones[?State==`available`].ZoneName' --output text | awk '{print $2}')
+echo "      using AZs: $AZ1 + $AZ2"
+
+mk_subnet() { # $1=Name tag  $2=CIDR  $3=AZ
+  local sid
+  sid=$(aws ec2 describe-subnets \
+    --filters "Name=tag:Name,Values=$1" "Name=vpc-id,Values=$VPC_ID" \
+    --query 'Subnets[0].SubnetId' --output text)
+  if [ "$sid" = "None" ]; then
+    sid=$(aws ec2 create-subnet --vpc-id "$VPC_ID" --cidr-block "$2" \
+      --availability-zone "$3" \
+      --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=$1}]" \
+      --query 'Subnet.SubnetId' --output text)
+  fi
+  echo "$sid"
+}
+PUBLIC_SUBNET=$(mk_subnet eventhub-public-1a  10.0.1.0/24 "$AZ1")
+PRIV1=$(mk_subnet         eventhub-private-1a 10.0.2.0/24 "$AZ1")
+PRIV2=$(mk_subnet         eventhub-private-1b 10.0.3.0/24 "$AZ2")
+aws ec2 modify-subnet-attribute --subnet-id "$PUBLIC_SUBNET" --map-public-ip-on-launch
+echo "[2/7] subnets ready: public=$PUBLIC_SUBNET priv1=$PRIV1 priv2=$PRIV2"
+
+# ---- 3. Internet gateway ---------------------------------------------------
+IGW_ID=$(aws ec2 describe-internet-gateways --filters Name=tag:Name,Values=eventhub-igw \
+  --query 'InternetGateways[0].InternetGatewayId' --output text)
+if [ "$IGW_ID" = "None" ]; then
+  IGW_ID=$(aws ec2 create-internet-gateway \
+    --tag-specifications 'ResourceType=internet-gateway,Tags=[{Key=Name,Value=eventhub-igw}]' \
+    --query 'InternetGateway.InternetGatewayId' --output text)
+  aws ec2 attach-internet-gateway --internet-gateway-id "$IGW_ID" --vpc-id "$VPC_ID"
+  echo "[3/7] internet gateway created + attached ($IGW_ID)"
+else
+  echo "[3/7] internet gateway exists: $IGW_ID"
+fi
+
+# ---- 4. Route tables --------------------------------------------------------
+RT_PUB=$(aws ec2 describe-route-tables \
+  --filters Name=tag:Name,Values=eventhub-rt-public "Name=vpc-id,Values=$VPC_ID" \
+  --query 'RouteTables[0].RouteTableId' --output text)
+if [ "$RT_PUB" = "None" ]; then
+  RT_PUB=$(aws ec2 create-route-table --vpc-id "$VPC_ID" \
+    --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=eventhub-rt-public}]' \
+    --query 'RouteTable.RouteTableId' --output text)
+  aws ec2 create-route --route-table-id "$RT_PUB" \
+    --destination-cidr-block 0.0.0.0/0 --gateway-id "$IGW_ID" >/dev/null
+fi
+aws ec2 associate-route-table --route-table-id "$RT_PUB" \
+  --subnet-id "$PUBLIC_SUBNET" >/dev/null || true
+
