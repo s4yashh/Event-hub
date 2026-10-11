@@ -78,3 +78,33 @@ def ensure_notification_subscription(email: str) -> None:
             "notification subscription failed for %s", email, exc_info=True
         )
 
+
+@app.route("/")
+def home():
+    if session.get("user_id"):
+        return redirect(url_for("events"))
+    return render_template("landing.html", page_title="Find your next campus moment")
+
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        name = request.form["name"].strip()
+        email = request.form["email"].strip().lower()
+        password = request.form["password"]
+        if len(password) < 8:
+            flash("Your password must contain at least 8 characters.", "error")
+        else:
+            try:
+                with db() as conn, conn.cursor() as cur:
+                    cur.execute(
+                        "INSERT INTO users (name, email, password_hash) VALUES (%s, %s, %s)",
+                        (name, email, generate_password_hash(password)),
+                    )
+                ensure_notification_subscription(email)
+                flash("Your account is ready. Sign in to explore upcoming events.", "success")
+                return redirect(url_for("login"))
+            except pymysql.err.IntegrityError:
+                flash("That email is already registered. Try signing in instead.", "error")
+    return render_template("auth.html", page_title="Create your account", mode="signup")
+
