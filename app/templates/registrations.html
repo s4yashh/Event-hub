@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block content %}
+<div class="tickets-page content-shell">
+  <section class="tickets-heading">
+    <div><span class="eyebrow"><span class="eyebrow-line"></span> YOUR PLANS, IN ONE PLACE</span><h1>Every ticket tells<br><span>a little story.</span></h1><p>Here’s where your event requests stand. We’ll email you when a seat is confirmed.</p></div>
+    <div class="tickets-count-mark">{{ icon('ticket-star', 34) }}<span>MY<br>TICKETS</span></div>
+  </section>
+
+  <section class="ticket-summary" aria-label="Registration summary">
+    <div class="summary-card summary-total"><span class="summary-label">ALL REQUESTS</span><strong>{{ registrations|length }}</strong><span class="summary-caption">your campus moments</span></div>
+    <div class="summary-card summary-confirmed"><span class="summary-label">CONFIRMED</span><strong>{{ confirmed_count }}</strong><span class="summary-caption">you’re on the list</span></div>
+    <div class="summary-card summary-waitlisted"><span class="summary-label">WAITLISTED</span><strong>{{ waitlisted_count }}</strong><span class="summary-caption">we’ll let you know</span></div>
+  </section>
+
