@@ -1,0 +1,25 @@
+{% from "_icons.html" import icon %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f5f0">
+  <meta name="description" content="Discover campus events, reserve your seat, and get a ticket in seconds with EventHub.">
+  <title>{{ page_title }} · EventHub</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+  <script src="{{ url_for('static', filename='js/site.js') }}" defer></script>
+</head>
+<body class="page-{{ request.endpoint or 'home' }}">
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="site-header">
+    <nav class="nav-shell" aria-label="Main navigation">
+      <a class="brand" href="{{ url_for('home') }}" aria-label="EventHub home">
+        <span class="brand-mark">{{ icon('ticket-star', 23) }}</span>
+        <span class="brand-name">event<span>hub</span><i>.</i></span>
+      </a>
+
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="Open navigation">
+        {{ icon('menu', 22) }}{{ icon('close', 22) }}
+      </button>
+
