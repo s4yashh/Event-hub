@@ -13,3 +13,7 @@
     <div class="summary-card summary-waitlisted"><span class="summary-label">WAITLISTED</span><strong>{{ waitlisted_count }}</strong><span class="summary-caption">we’ll let you know</span></div>
   </section>
 
+  <div class="ticket-list-head"><div><span class="section-kicker">YOUR EVENT LINEUP</span><h2>Registration status</h2></div>
+    {% if registrations %}<div class="ticket-filters" role="group" aria-label="Filter tickets"><button type="button" class="ticket-filter is-selected" data-ticket-filter="all" aria-pressed="true">All</button><button type="button" class="ticket-filter" data-ticket-filter="CONFIRMED" aria-pressed="false">Confirmed</button><button type="button" class="ticket-filter" data-ticket-filter="WAITLISTED" aria-pressed="false">Waitlisted</button></div>{% endif %}
+  </div>
+
