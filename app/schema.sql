@@ -12,3 +12,18 @@ CREATE TABLE IF NOT EXISTS users (
   created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE = InnoDB;
 
+CREATE TABLE IF NOT EXISTS clubs (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  name        VARCHAR(100) NOT NULL UNIQUE,
+  description VARCHAR(255) DEFAULT ''
+) ENGINE = InnoDB;
+
+CREATE TABLE IF NOT EXISTS events (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  club_id     INT NOT NULL,
+  title       VARCHAR(150) NOT NULL,
+  description TEXT,
+  event_date  DATETIME NOT NULL,
+  venue       VARCHAR(150) DEFAULT 'VIT Vellore',
+  CONSTRAINT fk_events_club FOREIGN KEY (club_id) REFERENCES clubs (id)
+) ENGINE = InnoDB;
