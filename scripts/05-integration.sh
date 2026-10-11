@@ -65,3 +65,25 @@ for EMAIL in "${EMAILS[@]}"; do
   fi
 done
 
+# ---- 3. Step Functions state machine ----------------------------------------
+SM_ARN=$(aws stepfunctions list-state-machines \
+  --query "stateMachines[?name=='eventhub-register'].stateMachineArn" --output text)
+if [ -z "$SM_ARN" ]; then
+  SM_ARN=$(aws stepfunctions create-state-machine \
+    --name eventhub-register \
+    --definition "file://$PROJECT_DIR/aws/stepfunctions/rendered/register-event.asl.json" \
+    --role-arn "arn:aws:iam::${ACCOUNT_ID}:role/CloudProject-StepFunctions-Role" \
+    --query stateMachineArn --output text)
+  echo "[3/5] state machine created"
+else
+  echo "[3/5] state machine exists"
+fi
+
+# ---- 4. SSM params + start the worker ---------------------------------------
+for KV in "queue-url=$Q_URL" "sns-topic-arn=$TOPIC_ARN" "state-machine-arn=$SM_ARN"; do
+  aws ssm put-parameter --name "/eventhub/${KV%%=*}" --type String \
+    --value "${KV#*=}" --overwrite >/dev/null
+done
+echo "[4/5] queue-url / sns-topic-arn / state-machine-arn stored in SSM"
+ssh "${SSH_OPTS[@]}" "ec2-user@$EC2_IP" 'sudo systemctl restart worker && sleep 2 && systemctl is-active worker'
+
