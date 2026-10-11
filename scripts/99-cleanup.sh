@@ -56,3 +56,23 @@ if [ -n "${SM_ARN:-}" ]; then
   try aws stepfunctions delete-state-machine --state-machine-arn "$SM_ARN"
 fi
 
+echo "[7/12] SSM parameters"
+for P in db-host db-user db-name db-password flask-secret queue-url sns-topic-arn state-machine-arn; do
+  try aws ssm delete-parameter --name "/eventhub/$P"
+done
+
+echo "[8/12] CloudWatch alarms + dashboard"
+try aws cloudwatch delete-alarms --alarm-names eventhub-cpu-high eventhub-dlq-not-empty eventhub-sfn-failed
+try aws cloudwatch delete-dashboards --dashboard-names eventhub-dashboard
+
+echo "[9/12] CloudTrail + trail bucket"
+try aws cloudtrail stop-logging --name eventhub-trail
+try aws cloudtrail delete-trail --name eventhub-trail
+BUCKET="eventhub-cloudtrail-$ACCOUNT_ID"
+try aws s3 rm "s3://$BUCKET" --recursive
+try aws s3api delete-bucket --bucket "$BUCKET"
+
+echo "[10/12] security groups"
+[ -n "${DB_SG:-}" ]  && try aws ec2 delete-security-group --group-id "$DB_SG"
+[ -n "${WEB_SG:-}" ] && try aws ec2 delete-security-group --group-id "$WEB_SG"
+
