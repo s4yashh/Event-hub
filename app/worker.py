@@ -20,3 +20,27 @@ import time
 import boto3
 from botocore.exceptions import ClientError
 
+REGION = "ap-south-1"
+SSM_PREFIX = "/eventhub"
+
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s %(levelname)s %(message)s")
+log = logging.getLogger("eventhub-worker")
+
+ssm = boto3.client("ssm", region_name=REGION)
+sqs = boto3.client("sqs", region_name=REGION)
+sfn = boto3.client("stepfunctions", region_name=REGION)
+
+_param_cache: dict = {}
+
+
+def param(name: str) -> str:
+    if name not in _param_cache:
+        resp = ssm.get_parameter(Name=f"{SSM_PREFIX}/{name}")
+        _param_cache[name] = resp["Parameter"]["Value"]
+    return _param_cache[name]
+
+
+REQUIRED_FIELDS = ("eventId", "userId", "email")
+
+
