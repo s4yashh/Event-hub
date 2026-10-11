@@ -24,3 +24,40 @@ aws ssm put-parameter --name /eventhub/db-user --type String \
 aws ssm put-parameter --name /eventhub/db-name --type String \
   --value eventhub --overwrite >/dev/null
 
+if aws ssm get-parameter --name /eventhub/db-password >/dev/null 2>&1; then
+  echo "[1/4] db-password exists (keeping it)"
+else
+  DB_PASS=$(openssl rand -base64 24 | tr -d '/+=')
+  aws ssm put-parameter --name /eventhub/db-password --type SecureString --value "$DB_PASS" >/dev/null
+  echo "[1/4] db-password generated + stored as SecureString"
+fi
+
+if aws ssm get-parameter --name /eventhub/flask-secret >/dev/null 2>&1; then
+  echo "      flask-secret exists (keeping it)"
+else
+  FLASK_SECRET=$(openssl rand -base64 36 | tr -d '/+=')
+  aws ssm put-parameter --name /eventhub/flask-secret --type SecureString --value "$FLASK_SECRET" >/dev/null
+  echo "      flask-secret generated + stored as SecureString"
+fi
+
+# ---- 2. DynamoDB tables -----------------------------------------------------
+for T in EventSeats Registrations; do
+  if aws dynamodb describe-table --table-name "$T" >/dev/null 2>&1; then
+    echo "[2/4] table $T exists"
+  else
+    if [ "$T" = "EventSeats" ]; then
+      aws dynamodb create-table --table-name EventSeats \
+        --attribute-definitions AttributeName=eventId,AttributeType=S \
+        --key-schema AttributeName=eventId,KeyType=HASH \
+        --billing-mode PAY_PER_REQUEST >/dev/null
+    else
+      aws dynamodb create-table --table-name Registrations \
+        --attribute-definitions AttributeName=eventId,AttributeType=S AttributeName=userId,AttributeType=S \
+        --key-schema AttributeName=eventId,KeyType=HASH AttributeName=userId,KeyType=RANGE \
+        --billing-mode PAY_PER_REQUEST >/dev/null
+    fi
+    aws dynamodb wait table-exists --table-name "$T"
+    echo "[2/4] table $T created"
+  fi
+done
+
