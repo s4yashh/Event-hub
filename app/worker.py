@@ -60,3 +60,32 @@ def process(message: dict) -> None:
     log.info("started execution for event=%s user=%s", body["eventId"], body["userId"])
 
 
+def main() -> None:
+    queue_url = param("queue-url")
+    log.info("worker started, polling %s", queue_url)
+    while True:
+        try:
+            resp = sqs.receive_message(
+                QueueUrl=queue_url,
+                MaxNumberOfMessages=10,
+                WaitTimeSeconds=20,           # long poll: fewer empty responses
+            )
+        except ClientError as e:
+            log.error("receive_message failed, retrying in 5s: %s", e)
+            time.sleep(5)
+            continue
+
+        for message in resp.get("Messages", []):
+            try:
+                process(message)
+            except ClientError as e:
+                # AWS-side error (e.g. throttling): leave the message for retry.
+                log.error("AWS error (message kept for retry): %s", e)
+            except Exception as e:
+                # Poison message: leave it; after maxReceiveCount receives it
+                # lands in the DLQ and trips the CloudWatch alarm.
+                log.error("bad message (will retry -> DLQ): %s", e)
+
+
+if __name__ == "__main__":
+    main()
