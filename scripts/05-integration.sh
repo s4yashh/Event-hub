@@ -87,3 +87,37 @@ done
 echo "[4/5] queue-url / sns-topic-arn / state-machine-arn stored in SSM"
 ssh "${SSH_OPTS[@]}" "ec2-user@$EC2_IP" 'sudo systemctl restart worker && sleep 2 && systemctl is-active worker'
 
+# ---- 5. Smoke test: run the real workflow once ------------------------------
+echo "[5/5] smoke test: starting one execution (event 2, fake user 9999)"
+EXEC_ARN=$(aws stepfunctions start-execution \
+  --state-machine-arn "$SM_ARN" \
+  --input '{"eventId":"2","userId":"9999","email":"smoke@test.local"}' \
+  --query executionArn --output text)
+sleep 8
+aws stepfunctions describe-execution --execution-arn "$EXEC_ARN" \
+  --query '[status,output]' --output text
+SEATS_AFTER=$(aws dynamodb get-item --table-name EventSeats \
+  --key '{"eventId":{"S":"2"}}' --query 'Item.seatsAvailable.N' --output text)
+echo "      seats for event 2 after smoke test: $SEATS_AFTER (was 50)"
+
+# reset demo state
+aws dynamodb update-item --table-name EventSeats \
+  --key '{"eventId":{"S":"2"}}' \
+  --update-expression "SET seatsAvailable = :n" \
+  --expression-attribute-values '{":n":{"N":"50"}}' >/dev/null
+aws dynamodb delete-item --table-name Registrations \
+  --key '{"eventId":{"S":"2"},"userId":{"S":"9999"}}' >/dev/null
+echo "      demo state reset (event 2 back to 50 seats)"
+
+echo
+cat <<DONE
+============================================================
+INTEGRATION DONE
+Queue:   $Q_URL
+DLQ:     $DLQ_URL
+Topic:   $TOPIC_ARN
+State machine: $SM_ARN
+Worker:  running on $EC2_IP
+ACTION REQUIRED: open the subscriber inbox -> "AWS Notification - Subscription Confirmation" -> click Confirm
+============================================================
+DONE
