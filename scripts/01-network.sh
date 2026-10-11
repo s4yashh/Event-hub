@@ -92,3 +92,43 @@ fi
 aws ec2 associate-route-table --route-table-id "$RT_PUB" \
   --subnet-id "$PUBLIC_SUBNET" >/dev/null || true
 
+RT_PRIV=$(aws ec2 describe-route-tables \
+  --filters Name=tag:Name,Values=eventhub-rt-private "Name=vpc-id,Values=$VPC_ID" \
+  --query 'RouteTables[0].RouteTableId' --output text)
+if [ "$RT_PRIV" = "None" ]; then
+  RT_PRIV=$(aws ec2 create-route-table --vpc-id "$VPC_ID" \
+    --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=eventhub-rt-private}]' \
+    --query 'RouteTable.RouteTableId' --output text)
+fi
+aws ec2 associate-route-table --route-table-id "$RT_PRIV" --subnet-id "$PRIV1" >/dev/null || true
+aws ec2 associate-route-table --route-table-id "$RT_PRIV" --subnet-id "$PRIV2" >/dev/null || true
+echo "[4/7] route tables ready (public has 0.0.0.0/0 -> igw; private has none)"
+
+# ---- 5. Security groups -----------------------------------------------------
+WEB_SG=$(aws ec2 describe-security-groups \
+  --filters Name=group-name,Values=eventhub-web-sg "Name=vpc-id,Values=$VPC_ID" \
+  --query 'SecurityGroups[0].GroupId' --output text)
+if [ "$WEB_SG" = "None" ]; then
+  WEB_SG=$(aws ec2 create-security-group --group-name eventhub-web-sg \
+    --description "EventHub web: HTTP from internet, SSH from team IP only" \
+    --vpc-id "$VPC_ID" --query 'GroupId' --output text)
+fi
+MY_IP=$(curl -s https://checkip.amazonaws.com | tr -d '[:space:]')
+# duplicates are ignored on re-run
+aws ec2 authorize-security-group-ingress --group-id "$WEB_SG" \
+  --protocol tcp --port 80 --cidr 0.0.0.0/0 2>/dev/null || true
+aws ec2 authorize-security-group-ingress --group-id "$WEB_SG" \
+  --protocol tcp --port 22 --cidr "$MY_IP/32" 2>/dev/null || true
+
+DB_SG=$(aws ec2 describe-security-groups \
+  --filters Name=group-name,Values=eventhub-db-sg "Name=vpc-id,Values=$VPC_ID" \
+  --query 'SecurityGroups[0].GroupId' --output text)
+if [ "$DB_SG" = "None" ]; then
+  DB_SG=$(aws ec2 create-security-group --group-name eventhub-db-sg \
+    --description "EventHub DB: MySQL only from the web security group" \
+    --vpc-id "$VPC_ID" --query 'GroupId' --output text)
+fi
+aws ec2 authorize-security-group-ingress --group-id "$DB_SG" \
+  --protocol tcp --port 3306 --source-group "$WEB_SG" 2>/dev/null || true
+echo "[5/7] security groups ready (SSH allowed from $MY_IP/32 only)"
+
