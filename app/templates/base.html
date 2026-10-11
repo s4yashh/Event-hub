@@ -39,3 +39,33 @@
     </nav>
   </header>
 
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="toast-stack" aria-live="polite" aria-atomic="false">
+        {% for category, message in messages %}
+          <div class="toast toast-{{ category if category in ['success', 'error', 'info'] else 'info' }}" role="status">
+            <span class="toast-mark">{{ icon('check' if category == 'success' else 'spark', 17) }}</span>
+            <span>{{ message }}</span>
+            <button class="toast-close" type="button" aria-label="Dismiss notification">{{ icon('close', 15) }}</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main id="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-shell">
+      <a class="brand footer-brand" href="{{ url_for('home') }}">
+        <span class="brand-mark">{{ icon('ticket-star', 20) }}</span>
+        <span class="brand-name">event<span>hub</span><i>.</i></span>
+      </a>
+      <p>Good things happen when you show up.</p>
+      <div class="footer-meta"><span>Made for campus life</span><span class="footer-dot"></span><span>Powered by AWS</span></div>
+    </div>
+  </footer>
+</body>
+</html>
