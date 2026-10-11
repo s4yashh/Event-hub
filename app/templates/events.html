@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block content %}
+<div class="discover-page content-shell">
+  <section class="discover-heading">
+    <div>
+      <span class="eyebrow"><span class="eyebrow-line"></span> CAMPUS, CURIATED</span>
+      <h1>Make a plan,<br><span>make a memory.</span></h1>
+      <p>Find the club events you’ll be glad you didn’t miss, {{ user_name.split(' ')[0] if user_name else 'friend' }}.</p>
+    </div>
+    <div class="heading-stamp"><span class="stamp-top">YOUR CAMPUS</span><span class="stamp-main">IS ON</span><span class="stamp-bottom">SHOW UP / 2026</span></div>
+  </section>
+
+  <section class="event-toolbar" aria-label="Find events">
+    <label class="search-box">{{ icon('search', 19) }}<input id="event-search" type="search" placeholder="Search events, clubs, venues…" autocomplete="off" aria-label="Search events"><kbd>/</kbd></label>
+    <div class="filter-row" role="group" aria-label="Filter by club">
+      <button class="filter-chip is-selected" type="button" data-club-filter="all" aria-pressed="true">All events <span>{{ events|length }}</span></button>
+      {% for club in clubs %}<button class="filter-chip" type="button" data-club-filter="{{ club|lower }}" aria-pressed="false">{{ club }}</button>{% endfor %}
+    </div>
+  </section>
+
