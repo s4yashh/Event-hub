@@ -32,3 +32,18 @@
     <div class="trust-inner"><span>{{ icon('shield', 19) }} No double-bookings</span><span class="trust-separator"></span><span>{{ icon('clock', 19) }} Fast, simple registration</span><span class="trust-separator"></span><span>{{ icon('mail', 19) }} Clear email updates</span></div>
   </section>
 
+  <section class="how-section content-shell" id="how-it-works">
+    <div class="section-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> THE GOOD PART</div><h2>From “what’s on?”<br>to “see you there.”</h2></div><p>Less chasing links. More being where the good stuff happens.</p></div>
+    <div class="steps-grid">
+      <article class="step-card"><span class="step-number">01</span><div class="step-icon step-violet">{{ icon('search', 23) }}</div><h3>Find your thing</h3><p>Browse events from the clubs that make campus interesting.</p></article>
+      <article class="step-card"><span class="step-number">02</span><div class="step-icon step-lime">{{ icon('ticket', 23) }}</div><h3>Claim your seat</h3><p>One click sends your request. Seat counts stay fair—even when everyone clicks at once.</p></article>
+      <article class="step-card"><span class="step-number">03</span><div class="step-icon step-peach">{{ icon('mail', 23) }}</div><h3>Show up ready</h3><p>Get a clear confirmation or waitlist update, then enjoy the event.</p></article>
+    </div>
+  </section>
+
+  <section class="closing-cta">
+    <div class="closing-inner"><div><span class="eyebrow eyebrow-light">YOUR CAMPUS IS HAPPENING</span><h2>There’s a seat<br>with your name on it.</h2></div><a class="button button-lime" href="{{ url_for('signup') }}">Let’s find it {{ icon('arrow', 17) }}</a></div>
+    <span class="closing-doodle doodle-one" aria-hidden="true">{{ icon('spark', 180) }}</span><span class="closing-doodle doodle-two" aria-hidden="true">{{ icon('spark', 140) }}</span>
+  </section>
+</div>
+{% endblock %}
