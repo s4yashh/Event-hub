@@ -1,0 +1,6 @@
+{
+  "BudgetName": "monthly-1usd",
+  "BudgetLimit": { "Amount": "1", "Unit": "USD" },
+  "TimeUnit": "MONTHLY",
+  "BudgetType": "COST"
+}
