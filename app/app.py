@@ -21,3 +21,29 @@ ddb = boto3.resource("dynamodb", region_name=REGION)
 _param_cache = {}
 
 
+def param(name: str, decrypt: bool = False) -> str:
+    """Read and cache a Systems Manager Parameter Store value."""
+    key = (name, decrypt)
+    if key not in _param_cache:
+        response = ssm.get_parameter(
+            Name=f"{SSM_PREFIX}/{name}", WithDecryption=decrypt
+        )
+        _param_cache[key] = response["Parameter"]["Value"]
+    return _param_cache[key]
+
+
+app.secret_key = param("flask-secret", decrypt=True)
+
+
+def db():
+    """Open a MySQL connection to the private RDS instance."""
+    return pymysql.connect(
+        host=param("db-host"),
+        user=param("db-user"),
+        password=param("db-password", decrypt=True),
+        database=param("db-name"),
+        cursorclass=pymysql.cursors.DictCursor,
+        autocommit=True,
+    )
+
+
