@@ -147,3 +147,34 @@ cat > /tmp/team-policy.json <<'POLICY'
 }
 POLICY
 
+aws iam create-policy --policy-name CloudProject-Team-Policy \
+  --policy-document file:///tmp/team-policy.json >/dev/null
+aws iam create-group --group-name "$GROUP" >/dev/null
+aws iam attach-group-policy --group-name "$GROUP" \
+  --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/CloudProject-Team-Policy"
+echo "[1/4] team policy + group created"
+
+# ---- 2. Users ---------------------------------------------------------------
+for u in "${USERS[@]}"; do
+  aws iam create-user --user-name "$u" >/dev/null
+  aws iam add-user-to-group --group-name "$GROUP" --user-name "$u"
+  aws iam create-login-profile --user-name "$u" \
+    --password "$TEMP_PASSWORD" --password-reset-required
+  echo "      user $u created (console access)"
+done
+echo "[2/4] users created"
+
+# ---- 3. EC2 role + instance profile ----------------------------------------
+cat > /tmp/ec2-trust.json <<'TRUST'
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "Service": "ec2.amazonaws.com" },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+TRUST
+
