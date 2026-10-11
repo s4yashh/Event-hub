@@ -23,3 +23,19 @@
         {{ icon('menu', 22) }}{{ icon('close', 22) }}
       </button>
 
+      <div class="nav-links" id="primary-nav">
+        {% if session.get('user_id') %}
+          <a class="nav-link {{ 'is-active' if request.endpoint == 'events' else '' }}" href="{{ url_for('events') }}">Discover</a>
+          <a class="nav-link {{ 'is-active' if request.endpoint == 'my_registrations' else '' }}" href="{{ url_for('my_registrations') }}">My tickets</a>
+          <span class="nav-divider" aria-hidden="true"></span>
+          <span class="profile-chip"><span class="profile-avatar">{{ (session.get('user_name') or 'E')[:1]|upper }}</span><span>{{ session.get('user_name') }}</span></span>
+          <a class="nav-link nav-logout" href="{{ url_for('logout') }}">Sign out</a>
+        {% else %}
+          {% if request.endpoint != 'home' %}<a class="nav-link" href="{{ url_for('home') }}">Home</a>{% endif %}
+          <a class="nav-link" href="{{ url_for('login') }}">Sign in</a>
+          <a class="button button-small button-dark" href="{{ url_for('signup') }}">Get started {{ icon('arrow', 15) }}</a>
+        {% endif %}
+      </div>
+    </nav>
+  </header>
+
