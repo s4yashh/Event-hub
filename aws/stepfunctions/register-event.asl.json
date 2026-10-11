@@ -1,0 +1,47 @@
+{
+  "Comment": "EventHub seat reservation workflow. Input: {eventId, userId, email}. Atomic seat reservation uses a DynamoDB conditional write; when the condition fails the student is waitlisted instead.",
+  "StartAt": "ReserveSeat",
+  "States": {
+    "ReserveSeat": {
+      "Type": "Task",
+      "Comment": "SET seatsAvailable = seatsAvailable - :one, only if seatsAvailable > :zero. This is the atomic no-overbooking step.",
+      "Resource": "arn:aws:states:::dynamodb:updateItem",
+      "Parameters": {
+        "TableName": "EventSeats",
+        "Key": {
+          "eventId": {
+            "S.$": "$.eventId"
+          }
+        },
+        "UpdateExpression": "SET seatsAvailable = seatsAvailable - :one",
+        "ConditionExpression": "seatsAvailable > :zero",
+        "ExpressionAttributeValues": {
+          ":one": {
+            "N": "1"
+          },
+          ":zero": {
+            "N": "0"
+          }
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "DynamoDB.ProvisionedThroughputExceededException",
+            "DynamoDB.RequestLimitExceeded",
+            "DynamoDB.ThrottlingException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 4,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "DynamoDB.ConditionalCheckFailedException"
+          ],
+          "Comment": "Event is full -> waitlist path.",
+          "Next": "WriteWaitlisted",
+          "ResultPath": "$.reserveError"
+        },
