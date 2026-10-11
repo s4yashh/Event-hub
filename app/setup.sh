@@ -31,3 +31,17 @@ fi
 ./venv/bin/pip install --upgrade pip -q
 ./venv/bin/pip install -r requirements.txt -q
 
+echo "==> Installing systemd units"
+sudo cp "${APP_DIR}/eventhub.service" /etc/systemd/system/
+sudo cp "${APP_DIR}/worker.service"   /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable eventhub
+sudo systemctl enable worker
+
+echo "==> Starting the web app (worker starts in Phase 5)"
+sudo systemctl restart eventhub
+
+echo
+echo "Done. Check with:  sudo systemctl status eventhub"
+echo "Then open:         http://<EC2-public-IP>/  (port 80)"
+echo "Logs:              journalctl -u eventhub -f"
