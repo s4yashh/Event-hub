@@ -163,3 +163,4 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .doodle-one { top: -62px; right: 9%; transform: rotate(-16deg); }
 .doodle-two { right: 26%; bottom: -98px; color: rgba(218,250,104,.22); font-size: 9rem; }
 
+/* Authentication */
