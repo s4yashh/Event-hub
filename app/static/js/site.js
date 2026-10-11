@@ -109,3 +109,31 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  document.querySelectorAll("[data-local-time]").forEach((element) => {
+    const date = new Date(element.dataset.localTime);
+    if (!Number.isNaN(date.getTime())) {
+      element.textContent = new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(date);
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      const target = event.target;
+      const typing = target instanceof HTMLElement &&
+        (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+      if (!typing && search) {
+        event.preventDefault();
+        search.focus();
+      }
+    }
+    if (event.key === "Escape" && nav?.classList.contains("is-open")) {
+      nav.classList.remove("is-open");
+      menuButton?.setAttribute("aria-expanded", "false");
+      menuButton?.setAttribute("aria-label", "Open navigation");
+      menuButton?.focus();
+    }
+  });
+});
