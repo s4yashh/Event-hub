@@ -21,3 +21,35 @@
 
   <div class="event-list-heading"><div><span class="section-kicker">UP NEXT</span><h2>Find your kind of crowd</h2></div><p id="event-result-count" aria-live="polite">{{ events|length }} events to explore</p></div>
 
+  {% if events %}
+    <section class="event-grid" id="event-grid" aria-label="Upcoming events">
+      {% for event in events %}
+        <article class="event-card event-art-{{ (loop.index0 % 3) + 1 }}" data-event-card data-club="{{ event.club|lower }}">
+          <div class="event-art" aria-hidden="true"><span class="art-index">EVENT / {{ '%02d'|format(loop.index) }}</span><span class="art-glyph">{{ icon('spark', 45) }}</span><span class="art-type">{{ event.club }}</span></div>
+          <div class="event-card-body">
+            <div class="event-card-top">
+              <span class="club-label">{{ event.club }}</span>
+              {% if event.seats is none %}<span class="seat-status status-unknown">Availability updating</span>
+              {% elif event.seats == 0 %}<span class="seat-status status-full">Waitlist open</span>
+              {% elif event.seats <= 5 %}<span class="seat-status status-low"><span></span>{{ event.seats }} {{ 'seat' if event.seats == 1 else 'seats' }} left</span>
+              {% else %}<span class="seat-status status-open"><span></span>{{ event.seats }} seats left</span>{% endif %}
+            </div>
+            <h3>{{ event.title }}</h3>
+            <p class="event-description">{{ event.description }}</p>
+            <div class="event-details"><span>{{ icon('calendar', 16) }}<time>{{ event.event_date.strftime('%a, %d %b · %H:%M') }}</time></span><span>{{ icon('pin', 16) }}{{ event.venue }}</span></div>
+            <form method="post" action="{{ url_for('register', event_id=event.id) }}" data-loading-form>
+              {% if event.seats == 0 %}<button class="button button-waitlist button-full" type="submit" data-loading-label="Joining waitlist">Join the waitlist {{ icon('arrow', 16) }}</button>
+              {% else %}<button class="button button-card button-full" type="submit" data-loading-label="Reserving your seat">Save me a seat {{ icon('arrow', 16) }}</button>{% endif %}
+            </form>
+          </div>
+        </article>
+      {% endfor %}
+    </section>
+    <div class="no-results" id="no-results" hidden><span class="no-results-icon">{{ icon('search', 24) }}</span><h3>No events found</h3><p>Try another search or choose a different club.</p><button class="text-button" id="clear-filters" type="button">Clear filters {{ icon('arrow', 15) }}</button></div>
+  {% else %}
+    <div class="no-results no-events"><span class="no-results-icon">{{ icon('calendar', 24) }}</span><h3>New events are on the way</h3><p>Check back soon to see what your clubs are planning.</p></div>
+  {% endif %}
+
+  <aside class="fairness-note">{{ icon('shield', 19) }}<span><strong>Fair seats, every time.</strong> Your reservation is checked atomically, so a seat is never promised twice.</span></aside>
+</div>
+{% endblock %}
