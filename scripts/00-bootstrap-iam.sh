@@ -40,3 +40,110 @@ if aws iam get-group --group-name "$GROUP" >/dev/null 2>&1; then
   exit 0
 fi
 
+# ---- 1. Team policy + group -------------------------------------------------
+cat > /tmp/team-policy.json <<'POLICY'
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ProjectServices",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:*", "rds:*", "dynamodb:*", "sqs:*", "sns:*", "states:*",
+        "s3:*", "cloudwatch:*", "logs:*", "cloudtrail:*", "ssm:*",
+        "tag:GetResources", "ce:GetCostAndUsage", "ce:Get*",
+        "budgets:ViewBudget", "budgets:Describe*",
+        "sts:GetCallerIdentity", "sts:GetSessionToken"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "KMSReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "kms:DescribeKey", "kms:ListKeys", "kms:ListAliases",
+        "kms:GetKeyPolicy", "kms:GetKeyRotationStatus"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ListIAMReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "iam:ListUsers", "iam:ListGroups", "iam:ListRoles", "iam:ListPolicies",
+        "iam:ListInstanceProfiles", "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole",
+        "iam:GetRole", "iam:GetInstanceProfile"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ManageOnlyProjectRolesAndPolicies",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole", "iam:DeleteRole", "iam:TagRole", "iam:UntagRole",
+        "iam:AttachRolePolicy", "iam:DetachRolePolicy",
+        "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:GetRolePolicy",
+        "iam:CreateInstanceProfile", "iam:DeleteInstanceProfile",
+        "iam:AddRoleToInstanceProfile", "iam:RemoveRoleFromInstanceProfile",
+        "iam:CreatePolicy", "iam:DeletePolicy", "iam:CreatePolicyVersion",
+        "iam:SetDefaultPolicyVersion", "iam:TagPolicy", "iam:UntagPolicy"
+      ],
+      "Resource": [
+        "arn:aws:iam::061039790916:role/CloudProject-*",
+        "arn:aws:iam::061039790916:instance-profile/CloudProject-*",
+        "arn:aws:iam::061039790916:policy/CloudProject-*"
+      ]
+    },
+    {
+      "Sid": "PassProjectRolesToServicesOnly",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::061039790916:role/CloudProject-*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": ["ec2.amazonaws.com", "states.amazonaws.com"]
+        }
+      }
+    },
+    {
+      "Sid": "SelfServiceCredentialsAndMFA",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetUser", "iam:GetLoginProfile", "iam:ChangePassword",
+        "iam:CreateAccessKey", "iam:DeleteAccessKey", "iam:ListAccessKeys",
+        "iam:UpdateAccessKey", "iam:ListMFADevices", "iam:EnableMFADevice",
+        "iam:ResyncMFADevice", "iam:DeactivateMFADevice", "iam:DeleteVirtualMFADevice"
+      ],
+      "Resource": [
+        "arn:aws:iam::061039790916:user/${aws:username}",
+        "arn:aws:iam::061039790916:mfa/${aws:username}"
+      ]
+    },
+    {
+      "Sid": "IdentitiesAreRootManaged",
+      "Effect": "Deny",
+      "Action": [
+        "iam:CreateUser", "iam:DeleteUser", "iam:CreateLoginProfile",
+        "iam:UpdateLoginProfile", "iam:DeleteLoginProfile", "iam:CreateGroup",
+        "iam:DeleteGroup", "iam:AddUserToGroup", "iam:RemoveUserFromGroup",
+        "iam:AttachGroupPolicy", "iam:DetachGroupPolicy", "iam:PutGroupPolicy",
+        "iam:DeleteGroupPolicy"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "NoOutOfSyllabusOrBillingServices",
+      "Effect": "Deny",
+      "Action": [
+        "lambda:*", "ses:*", "ecs:*", "eks:*", "apigateway:*",
+        "cognito-idp:*", "cognito-identity:*", "amplify:*",
+        "account:*", "organizations:*", "support:*", "aws-marketplace:*",
+        "route53domains:*", "savingsplans:*", "kms:CreateKey", "kms:CreateAlias"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+POLICY
+
