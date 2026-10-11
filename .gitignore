@@ -1,0 +1,25 @@
+# credentials / keys — NEVER commit
+*.pem
+*.pem.txt
+
+# Documentation and screenshots are kept locally, not published in this code push
+*.md
+!README.md
+docs/
+*.png
+
+# script build state (resource IDs, no secrets)
+scripts/state.env
+aws/iam/rendered/
+aws/stepfunctions/rendered/
+
+# Local secrets and environment files
+.env
+.env.*
+
+# python
+__pycache__/
+*.pyc
+
+# mac
+.DS_Store
