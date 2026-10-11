@@ -282,6 +282,12 @@ cat > /tmp/sfn-policy.json <<'POLICY'
       "Resource": "arn:aws:dynamodb:ap-south-1:061039790916:table/Registrations"
     },
     {
+      "Sid": "UpdateRegistrationStatus",
+      "Effect": "Allow",
+      "Action": "dynamodb:UpdateItem",
+      "Resource": "arn:aws:dynamodb:ap-south-1:061039790916:table/Registrations"
+    },
+    {
       "Sid": "PublishNotification",
       "Effect": "Allow",
       "Action": "sns:Publish",
