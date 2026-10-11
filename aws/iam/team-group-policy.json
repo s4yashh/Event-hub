@@ -1,0 +1,90 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ProjectServices",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:*",
+        "rds:*",
+        "dynamodb:*",
+        "sqs:*",
+        "sns:*",
+        "states:*",
+        "s3:*",
+        "cloudwatch:*",
+        "logs:*",
+        "cloudtrail:*",
+        "ssm:*",
+        "tag:GetResources",
+        "ce:GetCostAndUsage",
+        "ce:Get*",
+        "budgets:ViewBudget",
+        "budgets:Describe*",
+        "sts:GetCallerIdentity",
+        "sts:GetSessionToken"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "KMSReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "kms:DescribeKey",
+        "kms:ListKeys",
+        "kms:ListAliases",
+        "kms:GetKeyPolicy",
+        "kms:GetKeyRotationStatus"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ListIAMReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "iam:ListUsers",
+        "iam:ListGroups",
+        "iam:ListRoles",
+        "iam:ListPolicies",
+        "iam:ListInstanceProfiles",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListInstanceProfilesForRole",
+        "iam:GetRole",
+        "iam:GetInstanceProfile"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ManageOnlyProjectRolesAndPolicies",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:CreateInstanceProfile",
+        "iam:DeleteInstanceProfile",
+        "iam:AddRoleToInstanceProfile",
+        "iam:RemoveRoleFromInstanceProfile",
+        "iam:CreatePolicy",
+        "iam:DeletePolicy",
+        "iam:CreatePolicyVersion",
+        "iam:SetDefaultPolicyVersion",
+        "iam:TagPolicy",
+        "iam:UntagPolicy"
+      ],
+      "Resource": [
+        "arn:aws:iam::<ACCOUNT_ID>:role/CloudProject-*",
+        "arn:aws:iam::<ACCOUNT_ID>:instance-profile/CloudProject-*",
+        "arn:aws:iam::<ACCOUNT_ID>:policy/CloudProject-*"
+      ]
+    },
+    {
+      "Sid": "PassProjectRolesToServicesOnly",
+      "Effect": "Allow",
