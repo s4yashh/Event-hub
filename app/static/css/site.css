@@ -262,3 +262,4 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .text-button { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; padding: 0; color: var(--violet); background: none; border: 0; cursor: pointer; font-size: .83rem; font-weight: 750; }
 .no-events { margin-top: 16px; }
 
+/* Ticket wallet */
