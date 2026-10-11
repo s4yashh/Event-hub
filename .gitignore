@@ -4,7 +4,7 @@
 
 # Documentation and screenshots are kept locally, not published in this code push
 *.md
-!README.md
+!/README.md
 docs/
 *.png
 
