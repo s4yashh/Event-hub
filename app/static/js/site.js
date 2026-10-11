@@ -30,3 +30,36 @@ document.addEventListener("DOMContentLoaded", () => {
     window.setTimeout(dismiss, 5600);
   });
 
+  document.querySelectorAll("[data-loading-form]").forEach((form) => {
+    form.addEventListener("submit", () => {
+      const button = form.querySelector("button[type='submit']");
+      if (!button || button.disabled) return;
+      button.disabled = true;
+      button.classList.add("button-loading");
+      button.textContent = button.dataset.loadingLabel || "Working";
+      button.setAttribute("aria-busy", "true");
+    });
+  });
+
+  const search = document.querySelector("#event-search");
+  const eventCards = Array.from(document.querySelectorAll("[data-event-card]"));
+  const clubFilters = Array.from(document.querySelectorAll("[data-club-filter]"));
+  const resultCount = document.querySelector("#event-result-count");
+  const noEvents = document.querySelector("#no-results");
+  let selectedClub = "all";
+
+  function filterEvents() {
+    if (!eventCards.length) return;
+    const query = (search?.value || "").trim().toLocaleLowerCase();
+    let visible = 0;
+    eventCards.forEach((card) => {
+      const matchesClub = selectedClub === "all" || card.dataset.club === selectedClub;
+      const matchesQuery = !query || card.textContent.toLocaleLowerCase().includes(query);
+      const show = matchesClub && matchesQuery;
+      card.hidden = !show;
+      if (show) visible += 1;
+    });
+    if (resultCount) resultCount.textContent = `${visible} ${visible === 1 ? "event" : "events"} to explore`;
+    if (noEvents) noEvents.hidden = visible > 0;
+  }
+
