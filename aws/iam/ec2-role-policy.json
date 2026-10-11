@@ -32,3 +32,37 @@
       ],
       "Resource": "arn:aws:sqs:ap-south-1:<ACCOUNT_ID>:eventhub-registrations"
     },
+    {
+      "Sid": "WorkerStartsRegistrationWorkflow",
+      "Effect": "Allow",
+      "Action": "states:StartExecution",
+      "Resource": "arn:aws:states:ap-south-1:<ACCOUNT_ID>:stateMachine:eventhub-register"
+    },
+    {
+      "Sid": "ReadConfigurationParameters",
+      "Effect": "Allow",
+      "Action": "ssm:GetParameter",
+      "Resource": "arn:aws:ssm:ap-south-1:<ACCOUNT_ID>:parameter/eventhub/*"
+    },
+    {
+      "Sid": "DecryptSecureStringsOnlyViaSSM",
+      "Effect": "Allow",
+      "Action": "kms:Decrypt",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "kms:ViaService": "ssm.ap-south-1.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "SubscribeStudentsForNotifications",
+      "Effect": "Allow",
+      "Action": [
+        "sns:Subscribe",
+        "sns:SetSubscriptionAttributes"
+      ],
+      "Resource": "arn:aws:sns:ap-south-1:<ACCOUNT_ID>:eventhub-notifications"
+    }
+  ]
+}
