@@ -34,3 +34,28 @@ else
   echo "[1/4] local key file found: $KEY_FILE"
 fi
 
+# ---- 2. instance ------------------------------------------------------------
+INSTANCE_ID=$(aws ec2 describe-instances \
+  --filters Name=tag:Name,Values=eventhub-web \
+            "Name=instance-state-name,Values=pending,running,stopped" \
+  --query 'Reservations[0].Instances[0].InstanceId' --output text)
+if [ "$INSTANCE_ID" = "None" ]; then
+  AMI_ID=$(aws ssm get-parameter \
+    --name /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64 \
+    --query 'Parameter.Value' --output text)
+  INSTANCE_ID=$(aws ec2 run-instances \
+    --image-id "$AMI_ID" \
+    --instance-type t3.micro \
+    --key-name eventhub-key \
+    --security-group-ids "$WEB_SG" \
+    --subnet-id "$PUBLIC_SUBNET" \
+    --associate-public-ip-address \
+    --iam-instance-profile Name=CloudProject-EC2-Profile \
+    --block-device-mappings 'DeviceName=/dev/xvda,Ebs={VolumeSize=8,VolumeType=gp3,Encrypted=true}' \
+    --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=eventhub-web}]' \
+    --query 'Instances[0].InstanceId' --output text)
+  echo "[2/4] instance launched: $INSTANCE_ID"
+else
+  echo "[2/4] instance exists: $INSTANCE_ID"
+fi
+
