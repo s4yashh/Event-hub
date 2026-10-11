@@ -157,3 +157,22 @@ def events():
         user_name=session.get("user_name"),
     )
 
+
+@app.route("/events/<int:event_id>/register", methods=["POST"])
+@login_required
+def register(event_id):
+    """Queue an intent; Step Functions performs the atomic reservation."""
+    body = {
+        "eventId": str(event_id),
+        "userId": str(session["user_id"]),
+        "email": session["user_email"],
+    }
+    sqs.send_message(QueueUrl=param("queue-url"), MessageBody=json.dumps(body))
+    ensure_notification_subscription(session["user_email"])
+    flash(
+        "Request received. We are checking availability and will email your status shortly.",
+        "success",
+    )
+    return redirect(url_for("events"))
+
+
