@@ -251,3 +251,73 @@ aws iam add-role-to-instance-profile \
   --role-name CloudProject-EC2-Role
 echo "[3/4] EC2 role + instance profile created"
 
+# ---- 4. Step Functions role -------------------------------------------------
+cat > /tmp/sfn-trust.json <<'TRUST'
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "Service": "states.amazonaws.com" },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+TRUST
+
+cat > /tmp/sfn-policy.json <<'POLICY'
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReserveSeatWithConditionalUpdate",
+      "Effect": "Allow",
+      "Action": "dynamodb:UpdateItem",
+      "Resource": "arn:aws:dynamodb:ap-south-1:061039790916:table/EventSeats"
+    },
+    {
+      "Sid": "WriteRegistrationResult",
+      "Effect": "Allow",
+      "Action": "dynamodb:PutItem",
+      "Resource": "arn:aws:dynamodb:ap-south-1:061039790916:table/Registrations"
+    },
+    {
+      "Sid": "PublishNotification",
+      "Effect": "Allow",
+      "Action": "sns:Publish",
+      "Resource": "arn:aws:sns:ap-south-1:061039790916:eventhub-notifications"
+    }
+  ]
+}
+POLICY
+
+aws iam create-role --role-name CloudProject-StepFunctions-Role \
+  --assume-role-policy-document file:///tmp/sfn-trust.json >/dev/null
+aws iam put-role-policy --role-name CloudProject-StepFunctions-Role \
+  --policy-name CloudProject-StepFunctions-Policy \
+  --policy-document file:///tmp/sfn-policy.json
+echo "[4/4] Step Functions role created"
+
+cat <<DONE
+
+================================================================
+BOOTSTRAP COMPLETE — copy this whole block back to your mentor:
+
+ACCOUNT_ID=$ACCOUNT_ID
+USERS=${USERS[*]}
+TEMP_PASSWORD=$TEMP_PASSWORD
+Sign-in URL: https://${ACCOUNT_ID}.signin.aws.amazon.com/console
+Roles: CloudProject-EC2-Role (+ profile CloudProject-EC2-Profile)
+       CloudProject-StepFunctions-Role
+================================================================
+
+NEXT STEPS FOR EACH TEAM MEMBER (do today, takes 3 min each):
+  1. Open  https://${ACCOUNT_ID}.signin.aws.amazon.com/console
+  2. Sign in: IAM username = your name, password = $TEMP_PASSWORD
+  3. When asked, set your own new password
+  4. IAM -> Users -> (yourself) -> Security credentials -> Create access key
+     -> "Command Line Interface (CLI)" -> copy both values (save them once!)
+  5. On your Mac:
+       aws configure          # paste key + secret, region ap-south-1, output json
+       aws sts get-caller-identity   # must show YOUR user, not root
+DONE
