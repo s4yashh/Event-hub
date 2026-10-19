@@ -2,10 +2,10 @@
 *.pem
 *.pem.txt
 
-# Documentation and screenshots are kept locally, not published in this code push
-*.md
-!/README.md
-docs/
+# Keep project guides and report in version control; keep private evidence local.
+docs/screenshots/
+docs/*.pdf
+!docs/team-work-division.pdf
 *.png
 
 # script build state (resource IDs, no secrets)

@@ -26,8 +26,9 @@
         <p class="auth-intro">It takes a minute. The good plans last longer.</p>
         <form method="post" class="form-stack" data-loading-form>
           <label class="field"><span>Full name</span><input name="name" type="text" placeholder="Your name" autocomplete="name" required autofocus></label>
-          <label class="field"><span>Email address</span><input name="email" type="email" placeholder="you@gmail.com" autocomplete="email" required></label>
+          <label class="field"><span>Email address</span><input name="email" type="email" placeholder="you@gmail.com" autocomplete="email" required><small>Ticket emails need a one-time AWS confirmation. Status is always available in EventHub.</small></label>
           <label class="field"><span>Password</span><input name="password" type="password" placeholder="At least 8 characters" autocomplete="new-password" minlength="8" required><small>Use at least 8 characters.</small></label>
+          <label class="email-opt-in"><input name="email_updates" type="checkbox"><span>Email me ticket updates. I will confirm the one-time AWS email.</span></label>
           <button class="button button-dark button-full" type="submit" data-loading-label="Creating your account">Create account {{ icon('arrow', 16) }}</button>
         </form>
         <p class="auth-switch">Already with us? <a href="{{ url_for('login') }}">Sign in</a></p>
@@ -42,7 +43,7 @@
         </form>
         <p class="auth-switch">New to EventHub? <a href="{{ url_for('signup') }}">Create an account</a></p>
       {% endif %}
-      <div class="auth-assurance">{{ icon('shield', 15) }} Your account details are protected.</div>
+      <div class="auth-assurance">{{ icon('shield', 15) }} For this HTTP classroom demo, use a password you do not use elsewhere.</div>
     </div>
   </div>
 </section>

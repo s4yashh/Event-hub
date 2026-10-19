@@ -7,12 +7,13 @@ set -euo pipefail
 
 REGION="${REGION:-ap-south-1}"
 export AWS_DEFAULT_REGION="$REGION"
+export AWS_PAGER=""
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 STATE="$SCRIPT_DIR/state.env"
 # shellcheck disable=SC1090
 source "$STATE"
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-TOPIC_ARN=$(aws ssm get-parameter --name /eventhub/sns-topic-arn --query Parameter.Value --output text)
+TOPIC_ARN=$(aws ssm get-parameter --name /eventhub/alerts-topic-arn --query Parameter.Value --output text)
 SM_ARN=$(aws ssm get-parameter --name /eventhub/state-machine-arn --query Parameter.Value --output text)
 
 echo "== EventHub monitoring build =="

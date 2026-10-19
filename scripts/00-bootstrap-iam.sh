@@ -23,7 +23,11 @@ set -euo pipefail
 
 # ---- EDIT THESE TWO LINES IF NEEDED -----------------------------------------
 USERS=(suyash teammateb teammatec)      # three usernames (lowercase, no spaces)
-TEMP_PASSWORD='CHANGE_ME_BEFORE_USE'    # set a strong temp password; each user changes it at first login
+if [ -z "${TEMP_PASSWORD:-}" ]; then
+  read -r -s -p 'Strong temporary IAM password: ' TEMP_PASSWORD
+  echo
+fi
+[ -n "$TEMP_PASSWORD" ] || { echo 'A temporary password is required.' >&2; exit 1; }
 # -----------------------------------------------------------------------------
 
 REGION="ap-south-1"
@@ -147,6 +151,8 @@ cat > /tmp/team-policy.json <<'POLICY'
 }
 POLICY
 
+sed -i "s/061039790916/${ACCOUNT_ID}/g" /tmp/team-policy.json
+
 aws iam create-policy --policy-name CloudProject-Team-Policy \
   --policy-document file:///tmp/team-policy.json >/dev/null
 aws iam create-group --group-name "$GROUP" >/dev/null
@@ -240,6 +246,8 @@ cat > /tmp/ec2-policy.json <<'POLICY'
 }
 POLICY
 
+sed -i "s/061039790916/${ACCOUNT_ID}/g" /tmp/ec2-policy.json
+
 aws iam create-role --role-name CloudProject-EC2-Role \
   --assume-role-policy-document file:///tmp/ec2-trust.json >/dev/null
 aws iam put-role-policy --role-name CloudProject-EC2-Role \
@@ -297,6 +305,8 @@ cat > /tmp/sfn-policy.json <<'POLICY'
 }
 POLICY
 
+sed -i "s/061039790916/${ACCOUNT_ID}/g" /tmp/sfn-policy.json
+
 aws iam create-role --role-name CloudProject-StepFunctions-Role \
   --assume-role-policy-document file:///tmp/sfn-trust.json >/dev/null
 aws iam put-role-policy --role-name CloudProject-StepFunctions-Role \
@@ -311,7 +321,6 @@ BOOTSTRAP COMPLETE — copy this whole block back to your mentor:
 
 ACCOUNT_ID=$ACCOUNT_ID
 USERS=${USERS[*]}
-TEMP_PASSWORD=$TEMP_PASSWORD
 Sign-in URL: https://${ACCOUNT_ID}.signin.aws.amazon.com/console
 Roles: CloudProject-EC2-Role (+ profile CloudProject-EC2-Profile)
        CloudProject-StepFunctions-Role
@@ -319,11 +328,8 @@ Roles: CloudProject-EC2-Role (+ profile CloudProject-EC2-Profile)
 
 NEXT STEPS FOR EACH TEAM MEMBER (do today, takes 3 min each):
   1. Open  https://${ACCOUNT_ID}.signin.aws.amazon.com/console
-  2. Sign in: IAM username = your name, password = $TEMP_PASSWORD
+  2. Sign in with the temporary password shared privately by your team lead.
   3. When asked, set your own new password
-  4. IAM -> Users -> (yourself) -> Security credentials -> Create access key
-     -> "Command Line Interface (CLI)" -> copy both values (save them once!)
-  5. On your Mac:
-       aws configure          # paste key + secret, region ap-south-1, output json
+  4. On your Mac, use your approved IAM CLI sign-in method and verify with:
        aws sts get-caller-identity   # must show YOUR user, not root
 DONE

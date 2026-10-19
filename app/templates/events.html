@@ -21,24 +21,32 @@
 
   <div class="event-list-heading"><div><span class="section-kicker">UP NEXT</span><h2>Find your kind of crowd</h2></div><p id="event-result-count" aria-live="polite">{{ events|length }} events to explore</p></div>
 
+  {% if pending_event_id %}
+    <div class="registration-progress" role="status" aria-live="polite" data-registration-progress data-status-url="{{ url_for('registration_status', event_id=pending_event_id) }}" data-event-id="{{ pending_event_id }}">
+      <strong data-registration-message>Checking your registration…</strong>
+      <span>The seat count changes after the booking workflow finishes. <a href="{{ url_for('my_registrations') }}">View My tickets</a></span>
+    </div>
+  {% endif %}
+
   {% if events %}
     <section class="event-grid" id="event-grid" aria-label="Upcoming events">
       {% for event in events %}
-        <article class="event-card event-art-{{ (loop.index0 % 3) + 1 }}" data-event-card data-club="{{ event.club|lower }}">
+        <article class="event-card event-art-{{ (loop.index0 % 3) + 1 }}" data-event-card data-event-id="{{ event.id }}" data-club="{{ event.club|lower }}">
           <div class="event-art" aria-hidden="true"><span class="art-index">EVENT / {{ '%02d'|format(loop.index) }}</span><span class="art-glyph">{{ icon('spark', 45) }}</span><span class="art-type">{{ event.club }}</span></div>
           <div class="event-card-body">
             <div class="event-card-top">
               <span class="club-label">{{ event.club }}</span>
-              {% if event.seats is none %}<span class="seat-status status-unknown">Availability updating</span>
-              {% elif event.seats == 0 %}<span class="seat-status status-full">Waitlist open</span>
-              {% elif event.seats <= 5 %}<span class="seat-status status-low"><span></span>{{ event.seats }} {{ 'seat' if event.seats == 1 else 'seats' }} left</span>
-              {% else %}<span class="seat-status status-open"><span></span>{{ event.seats }} seats left</span>{% endif %}
+              {% if event.seats is none %}<span class="seat-status status-unknown" data-seat-status>Availability updating</span>
+              {% elif event.seats == 0 %}<span class="seat-status status-full" data-seat-status>Waitlist open</span>
+              {% elif event.seats <= 5 %}<span class="seat-status status-low" data-seat-status><span></span>{{ event.seats }} {{ 'seat' if event.seats == 1 else 'seats' }} left</span>
+              {% else %}<span class="seat-status status-open" data-seat-status><span></span>{{ event.seats }} seats left</span>{% endif %}
             </div>
             <h3>{{ event.title }}</h3>
             <p class="event-description">{{ event.description }}</p>
             <div class="event-details"><span>{{ icon('calendar', 16) }}<time>{{ event.event_date.strftime('%a, %d %b · %H:%M') }}</time></span><span>{{ icon('pin', 16) }}{{ event.venue }}</span></div>
             <form method="post" action="{{ url_for('register', event_id=event.id) }}" data-loading-form>
-              {% if event.seats == 0 %}<button class="button button-waitlist button-full" type="submit" data-loading-label="Joining waitlist">Join the waitlist {{ icon('arrow', 16) }}</button>
+              {% if pending_event_id == event.id %}<button class="button button-card button-full" type="button" disabled>Processing request…</button>
+              {% elif event.seats == 0 %}<button class="button button-waitlist button-full" type="submit" data-loading-label="Joining waitlist">Join the waitlist {{ icon('arrow', 16) }}</button>
               {% else %}<button class="button button-card button-full" type="submit" data-loading-label="Reserving your seat">Save me a seat {{ icon('arrow', 16) }}</button>{% endif %}
             </form>
           </div>

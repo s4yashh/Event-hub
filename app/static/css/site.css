@@ -190,6 +190,8 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .field input::placeholder { color: #a1a19c; }
 .field input:focus { background: white; border-color: var(--violet); box-shadow: 0 0 0 4px rgba(114,88,220,.12); }
 .field small { margin-top: -2px; color: #888b8e; font-size: .72rem; font-weight: 500; }
+.email-opt-in { display: flex; align-items: flex-start; gap: 10px; color: var(--ink-soft); font-size: .78rem; line-height: 1.5; cursor: pointer; }
+.email-opt-in input { width: 17px; height: 17px; flex: none; margin: 2px 0 0; accent-color: var(--violet); }
 .form-stack .button { margin-top: 4px; }
 .auth-switch { margin: 21px 0 0; color: var(--muted); text-align: center; font-size: .83rem; }
 .auth-switch a { color: var(--violet); font-weight: 750; text-decoration: underline; text-decoration-color: #c8bdf4; text-underline-offset: 3px; }
@@ -221,6 +223,9 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .event-list-heading h2, .ticket-list-head h2 { margin: 5px 0 0; font-size: 1.47rem; font-weight: 770; letter-spacing: -.05em; }
 .event-list-heading > p { margin: 0 0 3px; color: #888b8e; font-size: .77rem; }
 .event-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 17px; align-items: stretch; }
+.registration-progress { display: grid; gap: 5px; margin: 0 0 18px; padding: 15px 18px; color: #264b45; background: #e4f4ee; border: 1px solid #b7dfd0; border-radius: 12px; font-size: .8rem; }
+.registration-progress strong { font-size: .9rem; }
+.registration-progress a { color: inherit; font-weight: 800; text-decoration: underline; }
 .event-card { overflow: hidden; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 17px; box-shadow: var(--shadow-sm); transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; animation: card-enter .48s both; }
 .event-card:nth-child(2) { animation-delay: .06s; }
 .event-card:nth-child(3) { animation-delay: .12s; }
@@ -282,6 +287,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .ticket-row { position: relative; min-height: 126px; display: grid; grid-template-columns: 69px 1fr auto; align-items: center; gap: 21px; overflow: hidden; padding: 18px 23px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--ok); border-radius: 14px; box-shadow: var(--shadow-sm); transition: transform .18s ease, box-shadow .18s ease; }
 .ticket-row:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
 .ticket-waitlisted { border-left-color: #e2ad47; }
+.ticket-processing { border-left-color: var(--violet); }
 .ticket-date { min-height: 75px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #767b80; background: #f1f0e9; border-radius: 11px; }
 .ticket-date span { font-size: .6rem; font-weight: 800; letter-spacing: .12em; }
 .ticket-date strong { color: var(--ink); font-size: 1.62rem; font-weight: 800; letter-spacing: -.08em; line-height: 1; }
@@ -293,6 +299,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .registration-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; font-size: .68rem; font-weight: 800; }
 .badge-confirmed { color: var(--ok); background: var(--ok-bg); }
 .badge-waitlisted { color: var(--wait); background: var(--wait-bg); }
+.badge-processing { color: var(--violet); background: var(--violet-soft); }
 .ticket-time { color: #858a8c; font-size: .7rem; }
 .ticket-perforation { position: absolute; top: 50%; left: 82px; width: 1px; height: 52px; border-left: 1px dashed #d6d4ca; transform: translateY(-50%); }
 .ticket-empty { max-width: 550px; display: flex; flex-direction: column; align-items: center; margin: 8px auto 27px; padding: 47px 30px 42px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; text-align: center; }

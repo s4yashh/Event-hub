@@ -1,0 +1,51 @@
+# AWS Services Used in EventHub
+
+This guide explains what each AWS service does in the EventHub project and where it fits. The project is designed for the **Mumbai region (`ap-south-1`)**. It describes the intended architecture; check the AWS Console for the live status of resources in the account.
+
+## Application and data services
+
+| AWS service | What it is and how EventHub uses it | Where to find it in this project |
+|---|---|---|
+| **Amazon EC2** | A virtual server. The `eventhub-web` instance runs the Flask website and a background SQS worker as systemd services. The website accepts HTTP on port 80; SSH access is restricted to the team's IP. The worker starts registration workflows from queued messages. | Created by `scripts/03-compute.sh`; app and worker code are in `app/app.py` and `app/worker.py`; systemd units are `app/eventhub.service` and `app/worker.service`. |
+| **Amazon EBS** | Block storage attached to EC2. EventHub uses an encrypted 8 GiB `gp3` root volume for the instance's operating system and application files. | Configured in `scripts/03-compute.sh` (`--block-device-mappings`). Encryption uses the AWS-managed EBS KMS key. |
+| **Amazon RDS for MySQL** | A managed relational database. EventHub stores users, clubs, and event details here, where SQL relationships and constraints are useful. The instance is single-AZ, encrypted, and private (not directly reachable from the internet). | Created by `scripts/02-data.sh`; schema and sample data are in `app/schema.sql`, `app/seed.sql`, and `app/seed-extra.sql`; accessed by `app/app.py`. |
+| **Amazon DynamoDB** | A managed NoSQL database. `EventSeats` holds each event's available-seat count. A conditional, atomic update reserves a seat only when `seatsAvailable > 0`, preventing overbooking. `Registrations` tracks each user's registration and its `PROCESSING`, `CONFIRMED`, or `WAITLISTED` status; a conditional write also prevents duplicate registrations. | Tables are created in `scripts/02-data.sh`; workflow operations are in `aws/stepfunctions/register-event.asl.json`; app reads are in `app/app.py`; test/reset helpers are in `scripts/` and `docs/test-plan.md`. |
+| **Amazon SQS** | A managed message queue that separates a quick web request from slower registration processing. The app puts registration requests on `eventhub-registrations`; the EC2 worker long-polls the queue and starts a workflow. Failed messages are retried and eventually moved to `eventhub-registrations-dlq` (dead-letter queue, or DLQ) after three receives so they can be inspected. | Queue and redrive policy are configured in `scripts/05-integration.sh`; producer is `app/app.py`; consumer is `app/worker.py`. |
+| **AWS Step Functions** | A managed workflow orchestrator. The Standard state machine `eventhub-register` claims a unique registration, reserves a seat, records a confirmed or waitlisted result, and publishes the matching notification. It uses direct DynamoDB and SNS integrations, with retries and error handling—**the project does not use Lambda**. | Source state machine definition: `aws/stepfunctions/register-event.asl.json`; deployment is in `scripts/05-integration.sh`; the worker starts executions from `app/worker.py`. |
+| **Amazon SNS** | A publish/subscribe notification service. `eventhub-notifications` sends ticket outcome emails to students; message attributes and per-email subscription filters route notifications to the right student. `eventhub-alerts` sends CloudWatch alarm emails to the team. Email recipients must confirm their subscriptions. | Topic setup and subscription filters are in `scripts/05-integration.sh`; workflow publishes ticket notifications in `aws/stepfunctions/register-event.asl.json`; the app can subscribe students in `app/app.py`; alarm destination is configured in `scripts/06-monitoring.sh`. |
+
+## Networking, identity, and configuration
+
+| AWS service / component | What it is and how EventHub uses it | Where to find it in this project |
+|---|---|---|
+| **Amazon VPC** | A private, logically isolated network for the project. The VPC contains one public subnet for EC2 and two private subnets in separate Availability Zones for the RDS subnet group. The private route table has no internet route; there is no NAT Gateway. | Built in `scripts/01-network.sh`; diagram and CIDR ranges are in `docs/architecture.md`. |
+| **Internet Gateway (IGW)** | Connects the VPC's public subnet to the internet. Incoming student web traffic reaches the public EC2 instance through it. | Created and attached to the VPC in `scripts/01-network.sh`. |
+| **Route tables, subnets, and security groups (Amazon VPC/EC2 networking)** | Route tables decide where subnet traffic goes; security groups are stateful virtual firewalls. EventHub allows web traffic to EC2 and permits MySQL port 3306 to RDS only from the web server's security group. SSH is limited to a team IP. | Public/private subnet, routes, and `eventhub-web-sg` / `eventhub-db-sg` rules are in `scripts/01-network.sh`. |
+| **AWS Identity and Access Management (IAM)** | Controls who and what can access AWS. Team users receive project permissions; the EC2 instance role lets the app/worker call only the services it needs; a separate Step Functions role permits the workflow's DynamoDB and SNS actions. This avoids putting AWS keys in application code. | Bootstrap and trust relationships: `scripts/00-bootstrap-iam.sh`; least-privilege policies: `aws/iam/`. |
+| **AWS Systems Manager Parameter Store** | A configuration store for runtime settings and secrets. EventHub stores database connection details, the Flask secret, queue URL, topic ARNs, and state machine ARN under `/eventhub/`. Passwords and the Flask secret are `SecureString` parameters. The compute script also reads the current Amazon Linux AMI ID from a public Systems Manager parameter. | Parameters are created in `scripts/02-data.sh` and `scripts/05-integration.sh`; read by `app/app.py` and `app/worker.py`; AMI lookup is in `scripts/03-compute.sh`. |
+| **AWS Key Management Service (KMS)** | Manages encryption keys. EventHub relies on AWS-managed keys for encryption at rest of the EBS root volume, RDS storage, and SSM SecureString parameters; it does not create customer-managed keys. | Encryption settings are in `scripts/02-data.sh` and `scripts/03-compute.sh`; the EC2 role's restricted decrypt permission is in `aws/iam/ec2-role-policy.json`. |
+| **AWS Security Token Service (STS)** | Provides temporary AWS credentials and identity information. In this project, build scripts call `GetCallerIdentity` to confirm which AWS account is active before creating resources. It is a setup/CLI helper, not part of a student's registration request. | Used in `scripts/00-bootstrap-iam.sh`, `scripts/01-network.sh`, `scripts/05-integration.sh`, and `scripts/06-monitoring.sh`. |
+
+## Monitoring, audit, and cost controls
+
+| AWS service | What it is and how EventHub uses it | Where to find it in this project |
+|---|---|---|
+| **Amazon CloudWatch** | Collects service metrics and supports dashboards and alarms. The `eventhub-dashboard` shows SQS backlog, Step Functions executions, EC2 CPU, and DynamoDB conditional failures. Alarms watch high EC2 CPU, a non-empty DLQ, and failed workflow executions. Alarm actions send email through the SNS alerts topic. | Dashboard and three alarms are defined in `scripts/06-monitoring.sh`; walkthrough is in `docs/console-walkthrough.md`. |
+| **AWS CloudTrail** | Records AWS API activity for auditing who changed resources and when. EventHub configures a management-events trail named `eventhub-trail`; it is for AWS account activity, not for recording application registrations. | Trail creation and logging are in `scripts/06-monitoring.sh`; audit steps are in `docs/console-walkthrough.md`. |
+| **Amazon S3** | Object storage. Here, S3 is the destination for CloudTrail audit log files in an account-specific bucket. A lifecycle rule expires those logs after 30 days. It is not the application's database or general file store. | Bucket policy and 30-day lifecycle configuration are in `scripts/06-monitoring.sh`; bucket naming is `eventhub-cloudtrail-<account-id>`. |
+| **AWS Budgets** | Sends cost-threshold notifications so the team can respond to spending. The project has a monthly $1 cost budget with actual-spend and forecast notifications. **A budget alert is not a spending cap and does not stop resources.** | Budget definitions/examples are in `aws/budgets/`; project setup notes are in `docs/phase-0-checklist.md`. |
+
+## How the services work together
+
+1. A student's browser reaches the Flask app on **EC2** through the **Internet Gateway** and public subnet in the **VPC**.
+2. The app reads user/event information from **RDS MySQL** and current seat/registration information from **DynamoDB**. It stores settings and credentials in **Systems Manager Parameter Store** rather than hard-coding them.
+3. When the student registers, the app puts a request on **SQS** and responds without waiting for the booking workflow to finish. The EC2 worker takes the message and starts **Step Functions**.
+4. The workflow uses conditional **DynamoDB** writes to stop duplicate registrations and overbooking, then publishes the confirmed or waitlisted result to **SNS** for the student's email.
+5. **CloudWatch** watches service metrics and sends alarm notifications through a separate **SNS** topic. **CloudTrail** records AWS management activity in **S3**, and **Budgets** emails the team about spending thresholds.
+6. **IAM** roles grant the app and workflow their service permissions; **KMS** provides the managed encryption keys for supported data at rest.
+
+## Services not used by the built application
+
+The repository may mention other AWS products as denied permissions, comparisons, or future production options. They are not part of the current EventHub implementation. In particular, **Lambda, API Gateway, Cognito, SES, ECS, and EKS are not used**. Load balancing, Auto Scaling, Multi-AZ RDS, CloudFront, and WAF are discussed as possible scale-up options in `docs/report.md`, not as resources in the current build.
+
+For the architecture diagram and build sequence, see [`architecture.md`](architecture.md) and [`../scripts/README.md`](../scripts/README.md).

@@ -88,6 +88,59 @@ document.addEventListener("DOMContentLoaded", () => {
     search?.focus();
   });
 
+  const registrationProgress = document.querySelector("[data-registration-progress]");
+  if (registrationProgress) {
+    const statusUrl = registrationProgress.dataset.statusUrl;
+    const eventId = registrationProgress.dataset.eventId;
+    const message = registrationProgress.querySelector("[data-registration-message]");
+    const card = eventCards.find((item) => item.dataset.eventId === eventId);
+    const seatStatus = card?.querySelector("[data-seat-status]");
+    let attempts = 0;
+    let errors = 0;
+
+    function updateSeats(seats) {
+      if (!seatStatus || !Number.isInteger(seats) || seats < 0) return;
+      seatStatus.className = `seat-status ${seats === 0 ? "status-full" : seats <= 5 ? "status-low" : "status-open"}`;
+      seatStatus.textContent = seats === 0 ? "Waitlist open" : `${seats} ${seats === 1 ? "seat" : "seats"} left`;
+      if (seats > 0) seatStatus.prepend(document.createElement("span"));
+    }
+
+    async function checkRegistration() {
+      attempts += 1;
+      try {
+        const response = await fetch(statusUrl, { credentials: "same-origin", cache: "no-store" });
+        if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) {
+          throw new Error("Status unavailable");
+        }
+        const result = await response.json();
+        errors = 0;
+        updateSeats(result.seats);
+        if (result.status === "CONFIRMED") {
+          message.textContent = "Your seat is confirmed. The seat count is up to date.";
+          return;
+        }
+        if (result.status === "WAITLISTED") {
+          message.textContent = "The event is full. You are on the waitlist; no seat was deducted.";
+          return;
+        }
+        message.textContent = "Your booking is processing…";
+      } catch (_) {
+        errors += 1;
+        if (errors >= 3) {
+          message.textContent = "Could not check the result. Open My tickets to see your status.";
+          return;
+        }
+      }
+      if (attempts < 45) {
+        window.setTimeout(checkRegistration, 2000);
+      } else {
+        message.textContent = "This is taking longer than expected. Open My tickets to check your status.";
+      }
+    }
+
+    checkRegistration();
+  }
+
   const ticketFilters = Array.from(document.querySelectorAll("[data-ticket-filter]"));
   const ticketRows = Array.from(document.querySelectorAll("[data-ticket-row]"));
   const noTickets = document.querySelector("#no-tickets");

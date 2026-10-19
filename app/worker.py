@@ -3,7 +3,7 @@ EventHub worker — long-polls SQS and starts one Step Functions execution per
 registration message.
 
 Contract
-  * Message body: {"eventId": "1", "userId": "5", "email": "a@b.c"}
+  * Message body includes eventId, userId, email, eventTitle, eventDate, eventVenue.
   * Message is deleted ONLY after Step Functions StartExecution succeeds.
     If we crash, or the body is malformed, the message becomes visible again
     after the queue's visibility timeout and is finally moved to the DLQ
@@ -41,7 +41,7 @@ def param(name: str) -> str:
     return _param_cache[name]
 
 
-REQUIRED_FIELDS = ("eventId", "userId", "email")
+REQUIRED_FIELDS = ("eventId", "userId", "email", "eventTitle", "eventDate", "eventVenue")
 
 
 def process(message: dict) -> None:

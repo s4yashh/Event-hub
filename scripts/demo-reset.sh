@@ -1,40 +1,58 @@
 #!/usr/bin/env bash
-# EventHub — reset demo state before each practice run / demo.
-# Seats: event 1 -> 2, event 2 -> 50, event 3 -> 0. Queues purged.
-# Run: bash scripts/demo-reset.sh
+# Restore the event catalog after all queue messages and workflows finish.
+# This intentionally deletes demo registration records; run before a demo only.
 set -euo pipefail
 
 REGION="${REGION:-ap-south-1}"
 export AWS_DEFAULT_REGION="$REGION"
 
-seat() { # eventId seats
-  aws dynamodb update-item --table-name EventSeats \
-    --key "{\"eventId\":{\"S\":\"$1\"}}" \
-    --update-expression "SET seatsAvailable = :n" \
-    --expression-attribute-values "{\":n\":{\"N\":\"$2\"}}" >/dev/null
-  echo "  event $1 -> $2 seats"
-}
-
-echo "resetting seats:"
-seat 1 2
-seat 2 50
-seat 3 0
-
 QURL=$(aws ssm get-parameter --name /eventhub/queue-url --query Parameter.Value --output text)
+SM_ARN=$(aws ssm get-parameter --name /eventhub/state-machine-arn --query Parameter.Value --output text)
 DLQURL="${QURL%-registrations}-registrations-dlq"
-qlen() { # total visible + in-flight messages for a queue url
-  aws sqs get-queue-attributes --queue-url "$1" \
-    --attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible \
-    --query 'Attributes' --output text 2>/dev/null | awk '{print $1+$2}' || echo 0
+
+queue_count() {
+  local visible in_flight
+  visible=$(aws sqs get-queue-attributes --queue-url "$1" \
+    --attribute-names ApproximateNumberOfMessages \
+    --query 'Attributes.ApproximateNumberOfMessages' --output text)
+  in_flight=$(aws sqs get-queue-attributes --queue-url "$1" \
+    --attribute-names ApproximateNumberOfMessagesNotVisible \
+    --query 'Attributes.ApproximateNumberOfMessagesNotVisible' --output text)
+  echo "$((visible + in_flight))"
 }
 
-if [ "$(qlen "$QURL")" != "0" ] || [ "$(qlen "$DLQURL")" != "0" ]; then
-  aws sqs purge-queue --queue-url "$QURL" 2>/dev/null || true
-  aws sqs purge-queue --queue-url "$DLQURL" 2>/dev/null || true
-  echo "queues purged."
-  echo "!! NOTE: SQS purge can delay NEW messages for up to ~60 s."
-  echo "!! Start your demo talk (architecture slide, ~2 min) before the first live registration."
-else
-  echo "queues already empty - no purge needed (nothing to delay your demo)"
+if [ "$(queue_count "$QURL")" -ne 0 ]; then
+  echo "Main queue still has messages. Wait for the worker before resetting." >&2
+  exit 1
 fi
-echo "demo state ready"
+RUNNING=$(aws stepfunctions list-executions --state-machine-arn "$SM_ARN" \
+  --status-filter RUNNING --max-results 1 --query 'length(executions)' --output text)
+if [ "$RUNNING" -ne 0 ]; then
+  echo "A registration workflow is still running. Wait before resetting." >&2
+  exit 1
+fi
+
+echo "Deleting old registration records (demo data)..."
+REGISTRATION_KEYS=$(aws dynamodb scan --table-name Registrations \
+  --projection-expression 'eventId,userId' \
+  --query 'Items[*].[eventId.S,userId.S]' --output text)
+while IFS=$'\t' read -r event_id user_id; do
+  [ -n "$event_id" ] || continue
+  aws dynamodb delete-item --table-name Registrations \
+    --key "{\"eventId\":{\"S\":\"$event_id\"},\"userId\":{\"S\":\"$user_id\"}}" >/dev/null
+done <<< "$REGISTRATION_KEYS"
+
+for spec in '1 2' '2 50' '3 0' '4 36' '5 60' '6 24' '7 80' '8 45' '9 150' '10 1' '11 30' '12 0'; do
+  read -r event_id seats <<< "$spec"
+  aws dynamodb update-item --table-name EventSeats \
+    --key "{\"eventId\":{\"S\":\"$event_id\"}}" \
+    --update-expression 'SET seatsAvailable = :n' \
+    --expression-attribute-values "{\":n\":{\"N\":\"$seats\"}}" >/dev/null
+  echo "event $event_id: $seats seats"
+done
+
+if [ "$(queue_count "$DLQURL")" -ne 0 ]; then
+  aws sqs purge-queue --queue-url "$DLQURL"
+  echo "DLQ purged. Allow up to 60 seconds before using it again."
+fi
+echo "Demo state ready. Existing MySQL user accounts are retained."

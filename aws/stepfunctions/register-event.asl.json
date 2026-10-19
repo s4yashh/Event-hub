@@ -1,5 +1,5 @@
 {
-  "Comment": "EventHub registration workflow. Input: {eventId, userId, email}. Each student first claims a unique registration record (duplicate-safe), then the workflow atomically reserves a seat; a full event routes to the waitlist.",
+  "Comment": "EventHub registration workflow. Input includes eventId, userId, email, eventTitle, eventDate, and eventVenue. Each student first claims a unique registration record, then the workflow atomically reserves a seat; a full event routes to the waitlist.",
   "StartAt": "ClaimRegistration",
   "States": {
     "ClaimRegistration": {
@@ -139,7 +139,8 @@
       "Resource": "arn:aws:states:::sns:publish",
       "Parameters": {
         "TopicArn": "arn:aws:sns:ap-south-1:<ACCOUNT_ID>:eventhub-notifications",
-        "Message.$": "States.Format('CONFIRMED: seat reserved for event {} (user {}, email {})', $.eventId, $.userId, $.email)",
+        "Subject": "EventHub | Your seat is confirmed",
+        "Message.$": "States.Format('Your seat is confirmed for {} on {} at {}. Open My tickets in EventHub for your registration details.', $.eventTitle, $.eventDate, $.eventVenue)",
         "MessageAttributes": {
           "status": { "DataType": "String", "StringValue": "CONFIRMED" },
           "eventId": { "DataType": "String", "StringValue.$": "$.eventId" },
@@ -190,7 +191,8 @@
       "Resource": "arn:aws:states:::sns:publish",
       "Parameters": {
         "TopicArn": "arn:aws:sns:ap-south-1:<ACCOUNT_ID>:eventhub-notifications",
-        "Message.$": "States.Format('WAITLISTED: event {} is full for user {} (email {})', $.eventId, $.userId, $.email)",
+        "Subject": "EventHub | You are on the waitlist",
+        "Message.$": "States.Format('{} on {} at {} is full. You are on the waitlist. Open My tickets in EventHub to check your status.', $.eventTitle, $.eventDate, $.eventVenue)",
         "MessageAttributes": {
           "status": { "DataType": "String", "StringValue": "WAITLISTED" },
           "eventId": { "DataType": "String", "StringValue.$": "$.eventId" },

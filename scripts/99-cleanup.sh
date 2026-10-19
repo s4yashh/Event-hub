@@ -48,6 +48,7 @@ try aws sqs delete-queue --queue-url "https://sqs.${REGION}.amazonaws.com/${ACCO
 
 echo "[5/12] SNS topic"
 try aws sns delete-topic --topic-arn "arn:aws:sns:${REGION}:${ACCOUNT_ID}:eventhub-notifications"
+try aws sns delete-topic --topic-arn "arn:aws:sns:${REGION}:${ACCOUNT_ID}:eventhub-alerts"
 
 echo "[6/12] Step Functions state machine"
 SM_ARN=$(aws ssm get-parameter --name /eventhub/state-machine-arn \
@@ -57,7 +58,7 @@ if [ -n "${SM_ARN:-}" ]; then
 fi
 
 echo "[7/12] SSM parameters"
-for P in db-host db-user db-name db-password flask-secret queue-url sns-topic-arn state-machine-arn; do
+for P in db-host db-user db-name db-password flask-secret queue-url sns-topic-arn alerts-topic-arn state-machine-arn; do
   try aws ssm delete-parameter --name "/eventhub/$P"
 done
 
